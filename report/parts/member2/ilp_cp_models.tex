@@ -9,4 +9,4 @@ Yêu cầu của bài tập là so sánh SAT với các phương pháp chính x�
 & c_v-c_u+M_{uv}\,(1-y_{uv})\ge d_{uv} && \forall (u,v)\in E \label{eq:ilp-b}\\
 & c_v\in\{1,\dots,H\},\quad k\in\{LB,\dots,H\},\quad y_{uv}\in\{0,1\}. \label{eq:ilp-y}
 \end{align}
-CPLEX CP dùng trực tiếp \eqref{eq:sep} với biến nguyên $c_v$ và ràng buộc trị tuyệt đối. OR-Tools CP-SAT dùng biến nguyên $c_v$ và một biến Boolean cho mỗi cạnh để chọn một trong hai chiều của \eqref{eq:sep}. Cả bốn đều dùng chung cận $H$ và $LB$ với SAT (Mục~\ref{sec:vars}).
+CPLEX CP dùng trực tiếp \eqref{eq:sep} với biến nguyên $c_v$ và ràng buộc trị tuyệt đối. OR-Tools CP-SAT dùng biến nguyên $c_v$ và một biến Boolean cho mỗi cạnh để chọn một trong hai chiều của \eqref{eq:sep}. Cả bốn đều dùng chung cận $H$ và $LB$ với SAT (Mục~\ref{sec:vars}), và được nhận phép tô heuristic làm nghiệm khởi đầu (\texttt{AddHint} của CP-SAT, \texttt{Start} của Gurobi, MIP start của CPLEX, starting point của CP Optimizer). Nếu hết giờ mà solver chưa có nghiệm nào tốt hơn, phép tô heuristic được ghi là nghiệm FEAS, giống như cách SAT. Thời gian tính cận và heuristic được tính vào tổng thời gian của mọi phương pháp.

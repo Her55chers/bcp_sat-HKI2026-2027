@@ -27,7 +27,11 @@ Hình~\ref{fig:pipeline} mô tả các bước của chương trình. Với mỗ
 
 \subsection{Biến và cận ban đầu}\label{sec:vars}
 
-Cận trên $H$ lấy từ phép tô tham lam first-fit: duyệt đỉnh theo bậc giảm dần, gán màu nhỏ nhất không vi phạm \eqref{eq:sep}. Cận dưới là $LB=\max_{(u,v)\in E}d_{uv}+1$, vì hai đầu của cạnh nặng nhất cần hai màu cách nhau đúng bằng trọng số đó. Ta dùng hai họ biến:
+Cận trên $H$ là span của một phép tô heuristic. Phép tô first-fit (duyệt đỉnh theo một thứ tự, gán màu nhỏ nhất không vi phạm \eqref{eq:sep}) được chạy với ba thứ tự: bậc giảm dần, bậc có trọng số $\sum_w(2d_{vw}-1)$ giảm dần, và thứ tự kiểu DSATUR (chọn đỉnh mà các láng giềng đã tô cấm nhiều màu nhất). Sau đó ta lặp 2.000 lần kỹ thuật iterated greedy~\citep{culberson1992}: xếp lại các đỉnh theo lớp màu hiện tại (đảo ngược, xáo trộn, hoặc theo kích thước lớp), thỉnh thoảng đổi chỗ ngẫu nhiên hai đỉnh, rồi tô first-fit lại. Quá trình dùng hạt giống cố định nên kết quả lặp lại được, và dừng sớm nếu span đạt $LB$. Trên GEOM, $H$ giảm từ 16--113 (first-fit theo bậc) xuống 13--96, với thời gian dưới 1 giây mỗi đề. Phép tô này là nghiệm đầu tiên, nên lần gọi SAT đầu tiên hỏi luôn $K=H-1$.
+
+\paragraph{Loại đỉnh bậc thấp.} Một láng giềng $w$ đã tô màu cấm tối đa $2d_{vw}-1$ màu của $v$. Nếu $\sum_{w}(2d_{vw}-1)<LB$ thì $v$ luôn còn màu trong $[1,K]$ với mọi $K\ge LB$, bất kể các đỉnh khác tô thế nào. Ta lặp lại việc xóa các đỉnh như vậy (mỗi lần xóa làm giảm tổng của các láng giềng) và chỉ mã hóa đồ thị còn lại. Mọi ngưỡng mà tìm kiếm hỏi đều $\ge LB$, nên đồ thị còn lại có phép tô span $\le K$ khi và chỉ khi $G$ có. Sau mỗi lần SAT, các đỉnh đã xóa được tô lại bằng first-fit theo thứ tự ngược với thứ tự xóa, và nhận màu không quá $LB$. Bước này bỏ được nhiều đỉnh trên các đề GEOM thưa nhỏ (15/20 đỉnh ở GEOM20, 20/40 đỉnh ở GEOM40), nhưng hầu như không bỏ được đỉnh nào ở GEOM-L. Các mô hình ILP và CP dùng cùng bước này.
+
+\paragraph{Gợi ý phase.} Chương trình có thêm tùy chọn (\texttt{--phases}, tắt mặc định) báo cho solver ưu tiên giá trị của nghiệm hiện tại khi chọn biến (\texttt{set\_phases} của PySAT). Thử nhanh với CaDiCaL trên vài đề GEOM-M cho thấy tác dụng không ổn định: với \texttt{full}, thời gian giữ nguyên hoặc giảm khoảng 20--25\%; với \texttt{direct-seq}, có đề chậm gấp đôi. Vì vậy tùy chọn này không được dùng trong các thí nghiệm chính. Cận dưới đơn giản nhất là $\max_{(u,v)\in E}d_{uv}+1$, vì hai đầu của cạnh nặng nhất cần hai màu cách nhau đúng bằng trọng số đó; trên mọi đề GEOM cận này chỉ bằng 10, trong khi giá trị tối ưu là 13--83. Ta dùng cận clique mạnh hơn. Với một clique $C$, xếp các đỉnh theo màu tăng dần thì mọi cặp đều phải cách nhau ít nhất trọng số cạnh nối chúng, nên span của $G$ không nhỏ hơn span nhỏ nhất của riêng $C$. Ta liệt kê các clique cực đại (Bron--Kerbosch có chốt) và với mỗi clique lấy giá trị lớn nhất của: (i) $1+$ một cận dưới của đường Hamilton nhẹ nhất trong $C$ (trọng số cây khung nhỏ nhất, hoặc cận theo hai cạnh nhẹ nhất tại mỗi đỉnh); (ii) với $|C|\le 12$, span nhỏ nhất chính xác của $C$, tính bằng nhánh cận trên thứ tự màu (giới hạn 20.000 nút, dừng sớm khi clique không thể nâng $LB$ hiện tại). $LB$ là giá trị lớn nhất trên mọi clique. Trên 53 đề, $LB$ mới luôn không vượt giá trị tham khảo và trùng giá trị tối ưu ở 25 đề; khi đó tìm kiếm dừng ngay khi gặp nghiệm có span bằng $LB$, không cần lần gọi UNSAT nào. Ta dùng hai họ biến:
 \begin{align}
 x_{v,j}\ \text{đúng} &\iff c(v)=j, & 1&\le j\le H, \label{eq:varx}\\
 g_{v,j}\ \text{đúng} &\iff c(v)\ge j, & 2&\le j\le H, \label{eq:varg}
@@ -92,6 +96,12 @@ tốn $(2d-1)H-d(d-1)$ mệnh đề cho một cạnh có trọng số $d\le H$. 
 \end{equation}
 Sinh cho cả hai chiều của cạnh, \eqref{eq:interval} tốn đúng $2H$ mệnh đề, không phụ thuộc $d_{uv}$. Ví dụ với $H=7$, $x_{u,4}$ đúng và $d_{uv}=2$, đỉnh $v$ không được nhận màu trong $[3,5]$. Một mệnh đề $\neg x_{u,4}\vee\neg g_{v,3}\vee g_{v,6}$ là đủ, thay cho ba mệnh đề của \eqref{eq:pair}.
 
+Vì $x_{u,a}\leftrightarrow g_{u,a}\wedge\neg g_{u,a+1}$, có thể thay $\neg x_{u,a}$ trong \eqref{eq:interval} bằng $\neg g_{u,a}\vee g_{u,a+1}$ và bỏ hẳn biến exact cùng \eqref{eq:channel}:
+\begin{equation}
+\neg g_{u,a}\vee g_{u,a+1}\vee\neg g_{v,\,a-d_{uv}+1}\vee g_{v,\,a+d_{uv}}\qquad\forall (u,v)\in E,\ 1\le a\le H. \label{eq:compact}
+\end{equation}
+Cấu hình \texttt{compact} chỉ gồm \eqref{eq:chain}, \eqref{eq:compact} và \eqref{eq:delta}. Nó có một nửa số biến của \texttt{full}, ít hơn $n(3H-2)$ mệnh đề, đổi lại mệnh đề khoảng cách dài 4 literal thay vì 3. Phép tô được đọc ra bằng $c(v)=1+|\{j: g_{v,j}\}|$.
+
 \subsection{Ràng buộc ngưỡng và phá đối xứng}\label{sec:delta}
 
 Phép phản xạ $c'(v)=K+1-c(v)$ giữ nguyên mọi hiệu màu và miền $[1,K]$. Vì vậy có thể buộc một đỉnh neo $a$ (bậc lớn nhất) vào nửa dưới của miền màu~\citep{nguyen2026bcp}. Phép phản xạ này phụ thuộc $K$, nên mệnh đề phá đối xứng nằm trong phần phụ thuộc ngưỡng:
@@ -111,7 +121,8 @@ Cấu hình & Định nghĩa & Khác với \texttt{full}\\
 \texttt{full} & \eqref{eq:chain}, \eqref{eq:channel}, \eqref{eq:interval}, \eqref{eq:delta} & cấu hình đề xuất\\
 \texttt{no-sym} & \texttt{full}, bỏ mệnh đề đỉnh neo & không phá đối xứng\\
 \texttt{pair} & \eqref{eq:chain}, \eqref{eq:channel}, \eqref{eq:pair}, \eqref{eq:delta} & khoảng cách theo cặp\\
-\texttt{non-inc} & như \texttt{full}, solver mới cho mỗi $K$ & không giữ mệnh đề đã học\\
+\texttt{non-inc} & như \texttt{full}, solver mới cho mỗi $K$ & không giữ mệnh đề đã học\
+\texttt{compact} & \eqref{eq:chain}, \eqref{eq:compact}, \eqref{eq:delta} & không dùng biến exact\\
 \texttt{direct-}X & \eqref{eq:direct} với AMO loại X, \eqref{eq:pair} & chỉ dùng biến exact\\
 \bottomrule
 \end{tabular}
@@ -121,13 +132,14 @@ Cấu hình & Định nghĩa & Khác với \texttt{full}\\
 Gọi $a(m)$ và $\ell(m)$ là số biến phụ và số mệnh đề của cách mã hóa AMO đã chọn (Bảng~\ref{tab:amo}), và $P=\sum_{(u,v)\in E}\big[(2d_{uv}-1)H-d_{uv}(d_{uv}-1)\big]$. Khi chưa tính $\Delta_K$:
 \begin{align}
 |\mathrm{Var}(\mathtt{full})| &= n(2H-1), & |\mathtt{full}| &= n(4H-4)+2H|E|, \label{eq:size-full}\\
-|\mathrm{Var}(\mathtt{pair})| &= n(2H-1), & |\mathtt{pair}| &= n(4H-4)+P, \label{eq:size-pair}\\
+|\mathrm{Var}(\mathtt{pair})| &= n(2H-1), & |\mathtt{pair}| &= n(4H-4)+P, \label{eq:size-pair}\
+|\mathrm{Var}(\mathtt{compact})| &= n(H-1), & |\mathtt{compact}| &= n(H-2)+2H|E|, \label{eq:size-compact}\\
 |\mathrm{Var}(\mathtt{direct})| &= nH+n\,a(H), & |\mathtt{direct}| &= n\big(1+\ell(H)\big)+P. \label{eq:size-direct}
 \end{align}
 \end{proposition}
 
 \begin{proof}
-Với mỗi đỉnh, xích \eqref{eq:chain} có $H-2$ mệnh đề; \eqref{eq:channel} cho 3 mệnh đề ở mỗi màu giữa và 2 mệnh đề ở mỗi màu đầu và cuối (một mệnh đề trở thành hằng đúng), tổng $3H-2$. Cộng lại được $4H-4$. Phần khoảng cách và phần AMO suy trực tiếp từ \eqref{eq:pair}, \eqref{eq:interval} và Bảng~\ref{tab:amo}.
+Với mỗi đỉnh, xích \eqref{eq:chain} có $H-2$ mệnh đề; \eqref{eq:channel} cho 3 mệnh đề ở mỗi màu giữa và 2 mệnh đề ở mỗi màu đầu và cuối (một mệnh đề trở thành hằng đúng), tổng $3H-2$. Cộng lại được $4H-4$. \texttt{compact} chỉ có xích. Phần khoảng cách và phần AMO suy trực tiếp từ \eqref{eq:pair}, \eqref{eq:interval}, \eqref{eq:compact} và Bảng~\ref{tab:amo}; với \eqref{eq:compact}, các literal hằng ở biên bị lược bỏ nhưng không mệnh đề nào trở thành hằng đúng, nên mỗi chiều của cạnh vẫn có đúng $H$ mệnh đề.
 \end{proof}
 
 \subsection{Quy trình giải và chứng nhận tối ưu}\label{sec:procedure}
@@ -143,10 +155,10 @@ Bảng~\ref{tab:procedure} là quy trình giải đầy đủ. Bước 5 bỏ qu
 \textbf{Đầu vào:} đồ thị $G$, cấu hình mã hóa, solver, giới hạn thời gian $T$.\\
 \textbf{Đầu ra:} span tốt nhất cùng trạng thái OPT, FEAS hoặc TO.\\
 \midrule
-1.\ Tính $H$ và $LB$; sinh các mệnh đề không phụ thuộc $K$ và nạp vào solver; đặt $K\leftarrow H$.\\
+1.\ Tính $LB$ và phép tô heuristic (span $H$), lấy làm nghiệm hiện tại; nếu $H=LB$, trả về OPT. Loại các đỉnh bậc thấp. Sinh các mệnh đề không phụ thuộc $K$ và nạp vào solver; đặt $K\leftarrow H-1$.\\
 2.\ Thêm $\Delta_K$ vào solver và gọi \textsc{Solve} (hết giờ: trả về FEAS nếu đã có nghiệm, ngược lại TO).\\
 3.\ Nếu UNSAT, trả về nghiệm hiện tại với trạng thái OPT.\\
-4.\ Giải mã phép tô $c$ và kiểm tra bằng hàm độc lập; nếu sai nghĩa là chương trình có lỗi.\\
+4.\ Giải mã phép tô, tô lại các đỉnh đã loại để được phép tô $c$ của $G$, và kiểm tra bằng hàm độc lập; nếu sai nghĩa là chương trình có lỗi.\\
 5.\ Đặt $B\leftarrow\max_v c(v)$. Nếu $B=LB$, trả về OPT; ngược lại đặt $K\leftarrow B-1$ và quay lại bước 2.\\
 \bottomrule
 \end{tabular}

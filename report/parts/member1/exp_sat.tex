@@ -24,7 +24,7 @@ Bảng~\ref{tab:size-cls}, Bảng~\ref{tab:size-vars} và Hình~\ref{fig:size} c
 \label{fig:size}
 \end{figure}
 
-Từ bảng và hình có thể thấy mấy điểm sau. Thứ nhất, \texttt{full} có ít mệnh đề nhất trên mọi đề trong bảng, nhờ \eqref{eq:interval}: trên GEOM120b nó có 390.726 mệnh đề, chỉ bằng 24\% của \texttt{pair} (1.615.809) dù hai cấu hình có cùng số biến. Thứ hai, cấu hình \texttt{direct} với pairwise có ít biến nhất (13.560 so với 27.000 của \texttt{full} trên GEOM120b) nhưng nhiều mệnh đề nhất (2.321.529). Thứ ba, khác với các bài toán mà AMO chiếm gần hết công thức, ở đây mệnh đề khoảng cách \eqref{eq:pair} áp đảo: trên GEOM120b, 1.562.049 trong 1.602.369 mệnh đề của \texttt{direct} với sequential counter (97,5\%) là mệnh đề khoảng cách. Vì vậy ngoài pairwise, bốn cách mã hóa AMO còn lại có số mệnh đề chỉ chênh nhau khoảng 5\% trên đề này. Tuy vậy, thời gian chạy của solver không chỉ phụ thuộc vào kích thước, nên các con số này chỉ là điểm xuất phát cho các thí nghiệm bên dưới.
+Từ bảng và hình có thể thấy mấy điểm sau (số liệu với $H$ từ heuristic ở Mục~\ref{sec:vars}; trên GEOM120b, $H=96$). Thứ nhất, \texttt{compact} có ít mệnh đề nhất trên mọi đề trong bảng: 297.552 mệnh đề trên GEOM120b, ít hơn \texttt{full} (331.872) vì không có \eqref{eq:channel}. Cả hai đều nhờ mã hóa khoảng: \texttt{full} chỉ bằng 24\% số mệnh đề của \texttt{pair} (1.366.062) dù hai cấu hình có cùng số biến. Thứ hai, \texttt{compact} cũng có ít biến nhất (11.400 so với 22.920 của \texttt{full}); cấu hình \texttt{direct} với pairwise có số biến gần như vậy (11.520) nhưng nhiều mệnh đề nhất (1.867.782). Thứ ba, khác với các bài toán mà AMO chiếm gần hết công thức, ở đây mệnh đề khoảng cách \eqref{eq:pair} áp đảo: trên GEOM120b, 1.320.462 trong 1.354.662 mệnh đề của \texttt{direct} với sequential counter (97,5\%) là mệnh đề khoảng cách. Vì vậy ngoài pairwise, bốn cách mã hóa AMO còn lại có số mệnh đề chỉ chênh nhau khoảng 4\% trên đề này. Tuy vậy, thời gian chạy của solver không chỉ phụ thuộc vào kích thước, nên các con số này chỉ là điểm xuất phát cho các thí nghiệm bên dưới.
 
 \subsection{Kiểm tra tính đúng}\label{sec:validation}
 
@@ -43,12 +43,12 @@ AMO, mọi cách gán có 0, 1 hoặc 2 biến đúng, $m=11,\dots,24$ & 2.394\\
 Tính lan truyền: UP từ $x_i=1$ suy ra mọi $\neg x_j$, không xung đột, $m=2,\dots,64$, mọi $i$ & 2.079\\
 Công thức kích thước AMO (Bảng~\ref{tab:amo}) so với chương trình, $m=2,\dots,200$ & 199\\
 \midrule
-Tìm kiếm giảm dần so với vét cạn: 200 đồ thị ngẫu nhiên ($n\le 6$, $d\le 4$) $\times$ 9 cấu hình; trạng thái OPT và span trùng với vét cạn & 1.800\\
-$F(K)$ thỏa mãn được khi và chỉ khi $\chi_B(G)\le K$, ở mọi $K$, 3 cấu hình & 1.569\\
-Công thức kích thước (Mệnh đề~\ref{prop:size}) so với chương trình, 9 cấu hình & 900\\
-Ví dụ ở Hình~\ref{fig:example}: span 6 ở cả 9 cấu hình, UNSAT tại $K=5$ & 9\\
+Tìm kiếm giảm dần so với vét cạn: 200 đồ thị ngẫu nhiên ($n\le 6$, $d\le 4$) $\times$ 10 cấu hình $\times$ 3 chế độ (cận mới; cận cũ first-fit/$d_{\max}+1$ để luôn có lần gọi SAT; cận cũ không loại đỉnh bậc thấp); trạng thái OPT và span trùng với vét cạn & 6.000\\
+$F(K)$ thỏa mãn được khi và chỉ khi $\chi_B(G)\le K$, ở mọi $K$, 4 cấu hình & 2.092\\
+Công thức kích thước (Mệnh đề~\ref{prop:size}) so với chương trình, 10 cấu hình & 1.000\\
+Ví dụ ở Hình~\ref{fig:example}: span 6 ở cả 10 cấu hình, UNSAT tại $K=5$ & 10\\
 Trọng số đơn vị trùng với tô màu đồ thị: $K_4$ cần 4 màu, $C_5$ cần 3 màu & 2\\
-Số đỉnh và số cạnh đọc từ file trùng với số liệu của~\citet{nguyen2026bcp} & 53\\
+Số đỉnh và số cạnh đọc từ file trùng với số liệu của~\citet{nguyen2026bcp}, và $LB$ không vượt giá trị tham khảo & 53\\
 \bottomrule
 \end{tabular}
 \end{table}
