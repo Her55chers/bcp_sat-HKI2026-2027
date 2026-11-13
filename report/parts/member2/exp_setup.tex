@@ -1,0 +1,22 @@
+%% Phan cua Thanh vien 2
+\subsection{Môi trường thực nghiệm}\label{sec:setup}
+
+Các thí nghiệm chạy trên máy có CPU \MachineCPU{} (\MachineCores{} luồng), RAM \MachineRAM, hệ điều hành \MachineOS, Python \PythonVersion. Mỗi solver chạy một luồng, giới hạn thời gian \TimeLimit~giây. \RepeatText{} Mỗi lần chạy là một tiến trình riêng và bị dừng nếu quá giới hạn; nghiệm tốt nhất đã tìm được vẫn được ghi lại. Thời gian ghi lại gồm cả sinh công thức, mọi lần gọi solver và giải mã. Bảng~\ref{tab:solvers} liệt kê các solver. Khi tổng hợp, ta ghi số đề chứng nhận tối ưu (OPT) và điểm PAR-2 (thời gian trung bình, trong đó mỗi lần không chứng nhận được tính bằng hai lần giới hạn thời gian), đồng thời vẽ biểu đồ cactus. FEAS là hết giờ khi đã có nghiệm, TO là hết giờ khi chưa có nghiệm.
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Các solver và cách gọi. ``không chạy'' nghĩa là solver không cài được trên máy thử nghiệm.}
+\label{tab:solvers}
+\centering\small
+\input{tables/solvers.tex}
+\end{table}
+
+\subsection{Bộ dữ liệu}\label{sec:bench}
+
+Ta dùng hai nhóm dữ liệu đã công bố (Bảng~\ref{tab:bench}). Cả hai nhóm lấy từ kho dữ liệu của~\citet{nguyen2026bcp}. Nhóm GEOM gồm 33 đồ thị hình học, được chia theo kích thước thành GEOM-S, GEOM-M và GEOM-L; GEOM-L là nhóm đề lớn theo yêu cầu của bài tập. Nhóm MS-CAP gồm các đề phân bổ tần số. Các file này cũng chứa số màu yêu cầu của mỗi đỉnh và khoảng cách trên cùng một đỉnh (dùng cho bài toán đa màu); với BCP, các phần này được bỏ qua. Giá trị tham khảo (TK) trong Bảng~\ref{tab:detail} lấy từ kết quả mà \citet{nguyen2026bcp} công bố kèm mã nguồn.
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Các bộ dữ liệu.}
+\label{tab:bench}
+\centering\small
+\input{tables/bench.tex}
+\end{table}

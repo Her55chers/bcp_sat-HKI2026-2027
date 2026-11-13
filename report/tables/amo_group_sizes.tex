@@ -1,0 +1,11 @@
+\begin{tabular}{lllcccc}
+\toprule
+Mã hóa AMO & Số biến phụ & Số mệnh đề & $m=25$ & $m=50$ & $m=100$ & $m=200$ \\
+\midrule
+Pairwise & $0$ & $m(m-1)/2$ & 0\,/\,300 & 0\,/\,1225 & 0\,/\,4950 & 0\,/\,19900 \\
+Sequential & $m-1$ & $3m-4$ & 24\,/\,71 & 49\,/\,146 & 99\,/\,296 & 199\,/\,596 \\
+Binary & $\lceil\log_2 m\rceil$ & $m\lceil\log_2 m\rceil$ & 5\,/\,125 & 6\,/\,300 & 7\,/\,700 & 8\,/\,1600 \\
+Commander & $g=\lceil m/3\rceil$ & $\binom{g}{2}+g+m+\sum_i\binom{s_i}{2}$ & 9\,/\,93 & 17\,/\,252 & 34\,/\,793 & 67\,/\,2677 \\
+Product & $p+q$ & $2m+\binom{p}{2}+\binom{q}{2}$ & 10\,/\,70 & 15\,/\,149 & 20\,/\,290 & 29\,/\,596 \\
+\bottomrule
+\end{tabular}

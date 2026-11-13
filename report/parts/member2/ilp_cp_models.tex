@@ -1,0 +1,12 @@
+%% Phan cua Thanh vien 2
+\subsection{Mô hình ILP và CP dùng để so sánh}\label{sec:ilp}
+
+Yêu cầu của bài tập là so sánh SAT với các phương pháp chính xác khác. Gurobi và CPLEX MIP dùng mô hình \eqref{eq:ilp-obj}--\eqref{eq:ilp-y}, trong đó $H$ là một cận trên khả thi, $LB$ là cận dưới, biến nhị phân $y_{uv}$ chọn thứ tự hai màu và $M_{uv}=H-1+d_{uv}$:
+\begin{align}
+\min\ & k \label{eq:ilp-obj}\\
+\text{s.t.}\ & c_v\le k && \forall v\in V \label{eq:ilp-k}\\
+& c_u-c_v+M_{uv}\,y_{uv}\ge d_{uv} && \forall (u,v)\in E \label{eq:ilp-a}\\
+& c_v-c_u+M_{uv}\,(1-y_{uv})\ge d_{uv} && \forall (u,v)\in E \label{eq:ilp-b}\\
+& c_v\in\{1,\dots,H\},\quad k\in\{LB,\dots,H\},\quad y_{uv}\in\{0,1\}. \label{eq:ilp-y}
+\end{align}
+CPLEX CP dùng trực tiếp \eqref{eq:sep} với biến nguyên $c_v$ và ràng buộc trị tuyệt đối. OR-Tools CP-SAT dùng biến nguyên $c_v$ và một biến Boolean cho mỗi cạnh để chọn một trong hai chiều của \eqref{eq:sep}. Cả bốn đều dùng chung cận $H$ và $LB$ với SAT (Mục~\ref{sec:vars}).

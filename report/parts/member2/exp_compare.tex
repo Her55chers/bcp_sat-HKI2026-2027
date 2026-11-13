@@ -1,0 +1,19 @@
+%% Phan cua Thanh vien 2
+\subsection{So sánh với ILP và CP}\label{sec:exp-compare}
+
+Bảng~\ref{tab:res-base} so sánh SAT với Gurobi, CPLEX MIP, CPLEX CP và OR-Tools CP-SAT trên cùng máy, cùng bộ đề và cùng giới hạn thời gian. \AutoCompare
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{SAT so với ILP và CP: số đề chứng nhận tối ưu / tổng số đề (PAR-2, giây).}
+\label{tab:res-base}
+\centering\small
+\input{tables/res_base.tex}
+\end{table}
+
+\subsection{Khả năng mở rộng}\label{sec:exp-scale}
+
+\AutoScale{} Kết quả từng đề nằm ở Bảng~\ref{tab:detail} (\ref{app:detail}).
+
+\subsection{Hạn chế}\label{sec:threats}
+
+SAT solver CDCL khá nhạy với thứ tự mệnh đề và biến, mà mỗi đề chỉ chạy một lần, nên kết quả trên từng đề có thể bị nhiễu và các so sánh ở đây là số liệu quan sát, không phải khác biệt có ý nghĩa thống kê. Cận $H$ từ first-fit và cận $LB$ đều đơn giản; cận tốt hơn sẽ thu nhỏ công thức và có thể đổi thứ hạng. Encoder viết bằng Python nên thời gian sinh công thức đáng kể trên đề lớn. Các solver đều dùng tham số mặc định. Các mô hình ILP và CP ở Mục~\ref{sec:ilp} là mô hình cơ bản, nên kết quả của chúng không đại diện cho mọi mô hình ILP, CP có thể có.

@@ -1,0 +1,153 @@
+%% Phan cua Thanh vien 1
+\section{SAT-based approach}\label{sec:sat}
+
+\subsection{Tổng quan}\label{sec:overview}
+
+Hình~\ref{fig:pipeline} mô tả các bước của chương trình. Với mỗi ngưỡng $K$, công thức $F(K)$ thỏa mãn được khi và chỉ khi có phép tô hợp lệ với span không quá $K$ (Mệnh đề~\ref{prop:correct}). Khi solver trả về SAT, mô hình được giải mã thành phép tô và được một hàm kiểm tra độc lập (không dùng chung code với encoder) kiểm tra lại, rồi ngưỡng giảm xuống. Khi solver trả về UNSAT, nghiệm hiện tại là tối ưu.
+
+\begin{figure}[pos=t]
+\centering
+\begin{tikzpicture}[node distance=0.75cm, every node/.style={font=\small},
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=0.95cm, inner sep=4pt, fill=blue!4},
+  arr/.style={-{Stealth[length=2mm]}, thick}]
+\node[box] (p) {Đồ thị $G$\\cận $H$, $LB$};
+\node[box, right=of p] (e) {Encoder\\(cấu hình)};
+\node[box, right=of e] (s) {SAT solver\\$F(K)$};
+\node[box, right=of s] (d) {Giải mã,\\kiểm tra};
+\node[box, right=of d] (u) {$K\leftarrow$ span $-1$};
+\node[box, below=0.55cm of s] (o) {UNSAT $\Rightarrow$ tối ưu;\quad hết giờ $\Rightarrow$ FEAS/TO};
+\draw[arr] (p) -- (e); \draw[arr] (e) -- (s);
+\draw[arr] (s) -- node[above, font=\scriptsize]{SAT} (d); \draw[arr] (d) -- (u);
+\draw[arr] (u.north) -- ++(0,0.45) -| node[pos=0.25, above, font=\scriptsize]{thêm $\Delta_K$} (s.north);
+\draw[arr, dashed] (s) -- (o);
+\end{tikzpicture}
+\caption{Các bước giải. Với solver tăng dần, các mệnh đề và những gì đã học được giữ lại giữa các ngưỡng.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Biến và cận ban đầu}\label{sec:vars}
+
+Cận trên $H$ lấy từ phép tô tham lam first-fit: duyệt đỉnh theo bậc giảm dần, gán màu nhỏ nhất không vi phạm \eqref{eq:sep}. Cận dưới là $LB=\max_{(u,v)\in E}d_{uv}+1$, vì hai đầu của cạnh nặng nhất cần hai màu cách nhau đúng bằng trọng số đó. Ta dùng hai họ biến:
+\begin{align}
+x_{v,j}\ \text{đúng} &\iff c(v)=j, & 1&\le j\le H, \label{eq:varx}\\
+g_{v,j}\ \text{đúng} &\iff c(v)\ge j, & 2&\le j\le H, \label{eq:varg}
+\end{align}
+với quy ước $g_{v,j}$ luôn đúng khi $j\le1$ và luôn sai khi $j>H$. Mã hóa kết hợp có $n(2H-1)$ biến, mã hóa trực tiếp chỉ dùng $x$ và có $nH$ biến chính.
+
+\subsection{Gán màu}\label{sec:assign}
+
+Trong mã hóa kết hợp, xích \eqref{eq:chain} giữ tính đơn điệu của biến order, còn \eqref{eq:channel} định nghĩa biến exact từ biến order. Hai nhóm này kéo theo mỗi đỉnh có đúng một màu (\ref{app:proofs}), nên không cần ràng buộc AMO riêng.
+\begin{align}
+& \neg g_{v,j+1}\vee g_{v,j} && \forall v\in V,\ 2\le j<H \label{eq:chain}\\
+& x_{v,j}\leftrightarrow g_{v,j}\wedge\neg g_{v,j+1} && \forall v\in V,\ 1\le j\le H \label{eq:channel}
+\end{align}
+Mã hóa trực tiếp thay hai nhóm trên bằng ràng buộc đúng một màu cho mỗi đỉnh:
+\begin{equation}
+\ALO(x_{v,1},\dots,x_{v,H})\wedge\AMO(x_{v,1},\dots,x_{v,H})\qquad\forall v\in V. \label{eq:direct}
+\end{equation}
+
+\subsection{Các cách mã hóa AMO}\label{sec:amo}
+
+Gọi $X=(x_1,\dots,x_m)$ là một tập cần ràng buộc AMO (ở đây $m=H$). Mỗi tập dùng các biến phụ riêng. Bảng~\ref{tab:amo} tóm tắt kích thước của năm cách mã hóa.
+
+\paragraph{Pairwise.} Với mọi cặp $i<j$ thêm mệnh đề $(\neg x_i\vee\neg x_j)$.
+
+\paragraph{Sequential counter.} Biến phụ $s_i$ có nghĩa ``đã có một $x_j$ đúng với $j\le i$'':
+\begin{equation}
+(\neg x_1\vee s_1)\wedge\bigwedge_{i=2}^{m-1}\big[(\neg x_i\vee s_i)\wedge(\neg s_{i-1}\vee s_i)\wedge(\neg x_i\vee\neg s_{i-1})\big]\wedge(\neg x_m\vee\neg s_{m-1}). \label{eq:seq}
+\end{equation}
+
+\paragraph{Binary.} Đặt $k=\lceil\log_2 m\rceil$ và các biến phụ $y_1,\dots,y_k$. Biến $x_i$ được gán mã nhị phân của $i-1$; ký hiệu $\varphi(i,j)$ là $y_j$ nếu bit thứ $j$ của mã bằng 1, ngược lại là $\neg y_j$:
+\begin{equation}
+\bigwedge_{i=1}^{m}\bigwedge_{j=1}^{k}\big(\neg x_i\vee\varphi(i,j)\big). \label{eq:bin}
+\end{equation}
+
+\paragraph{Commander.} Chia $X$ thành $g=\lceil m/3\rceil$ nhóm $G_1,\dots,G_g$ có kích thước gần bằng nhau; mỗi nhóm có một biến chỉ huy $c_i$:
+\begin{equation}
+\AMO_{\mathrm{pw}}(c_1,\dots,c_g)\wedge\bigwedge_{i=1}^{g}\Big[\big(\neg c_i\vee\textstyle\bigvee_{x\in G_i}x\big)\wedge\AMO_{\mathrm{pw}}(G_i)\wedge\textstyle\bigwedge_{x\in G_i}(\neg x\vee c_i)\Big], \label{eq:cmd}
+\end{equation}
+trong đó $\AMO_{\mathrm{pw}}$ là mã hóa pairwise. Ta chỉ dùng một tầng.
+
+\paragraph{Product.} Đặt $p=\lceil\sqrt m\,\rceil$ và $q=\lceil m/p\rceil$, xếp $x_i$ vào hàng $u_i$ và cột $v_i$ của một lưới $p\times q$. Với các biến hàng $r_1,\dots,r_p$ và biến cột $c_1,\dots,c_q$:
+\begin{equation}
+\AMO_{\mathrm{pw}}(r_1,\dots,r_p)\wedge\AMO_{\mathrm{pw}}(c_1,\dots,c_q)\wedge\bigwedge_{i=1}^{m}\big[(\neg x_i\vee r_{u_i})\wedge(\neg x_i\vee c_{v_i})\big]. \label{eq:prod}
+\end{equation}
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Kích thước của một ràng buộc AMO trên $m$ literal. Bốn cột cuối ghi ``số biến phụ / số mệnh đề'', do chương trình sinh ra và trùng với công thức ở mọi $2\le m\le 200$.}
+\label{tab:amo}
+\centering\small
+\input{tables/amo_group_sizes.tex}
+\end{table}
+
+\subsection{Mã hóa khoảng cách}\label{sec:dist}
+
+Cách trực tiếp cấm từng cặp màu quá gần:
+\begin{equation}
+\neg x_{u,a}\vee\neg x_{v,b}\qquad\forall (u,v)\in E,\ |a-b|<d_{uv}, \label{eq:pair}
+\end{equation}
+tốn $(2d-1)H-d(d-1)$ mệnh đề cho một cạnh có trọng số $d\le H$. Tuy nhiên, khi $u$ nhận màu $a$ thì các màu cấm của $v$ tạo thành một khoảng liên tục $[a-d_{uv}+1,\ a+d_{uv}-1]$, nên chỉ cần nêu hai biên của khoảng~\citep{nguyen2026bcp}:
+\begin{equation}
+\neg x_{u,a}\vee\neg g_{v,\,a-d_{uv}+1}\vee g_{v,\,a+d_{uv}}\qquad\forall (u,v)\in E,\ 1\le a\le H. \label{eq:interval}
+\end{equation}
+Sinh cho cả hai chiều của cạnh, \eqref{eq:interval} tốn đúng $2H$ mệnh đề, không phụ thuộc $d_{uv}$. Ví dụ với $H=7$, $x_{u,4}$ đúng và $d_{uv}=2$, đỉnh $v$ không được nhận màu trong $[3,5]$. Một mệnh đề $\neg x_{u,4}\vee\neg g_{v,3}\vee g_{v,6}$ là đủ, thay cho ba mệnh đề của \eqref{eq:pair}.
+
+\subsection{Ràng buộc ngưỡng và phá đối xứng}\label{sec:delta}
+
+Phép phản xạ $c'(v)=K+1-c(v)$ giữ nguyên mọi hiệu màu và miền $[1,K]$. Vì vậy có thể buộc một đỉnh neo $a$ (bậc lớn nhất) vào nửa dưới của miền màu~\citep{nguyen2026bcp}. Phép phản xạ này phụ thuộc $K$, nên mệnh đề phá đối xứng nằm trong phần phụ thuộc ngưỡng:
+\begin{equation}
+\Delta_K=\bigwedge_{v\in V}\neg g_{v,K+1}\ \wedge\ \neg g_{a,\lceil K/2\rceil+1}. \label{eq:delta}
+\end{equation}
+Bảng~\ref{tab:config} liệt kê các cấu hình được so sánh. Trong \texttt{direct-}X, $\Delta_K$ gồm $\neg x_{v,j}$ với mọi $j>K$ và $\neg x_{a,j}$ với mọi $j>\lceil K/2\rceil$.
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Các cấu hình mã hóa. Mọi cấu hình đều biểu diễn cùng một bài toán quyết định ở ngưỡng $K$.}
+\label{tab:config}
+\centering\small
+\begin{tabular}{lll}
+\toprule
+Cấu hình & Định nghĩa & Khác với \texttt{full}\\
+\midrule
+\texttt{full} & \eqref{eq:chain}, \eqref{eq:channel}, \eqref{eq:interval}, \eqref{eq:delta} & cấu hình đề xuất\\
+\texttt{no-sym} & \texttt{full}, bỏ mệnh đề đỉnh neo & không phá đối xứng\\
+\texttt{pair} & \eqref{eq:chain}, \eqref{eq:channel}, \eqref{eq:pair}, \eqref{eq:delta} & khoảng cách theo cặp\\
+\texttt{non-inc} & như \texttt{full}, solver mới cho mỗi $K$ & không giữ mệnh đề đã học\\
+\texttt{direct-}X & \eqref{eq:direct} với AMO loại X, \eqref{eq:pair} & chỉ dùng biến exact\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{proposition}[Kích thước]\label{prop:size}
+Gọi $a(m)$ và $\ell(m)$ là số biến phụ và số mệnh đề của cách mã hóa AMO đã chọn (Bảng~\ref{tab:amo}), và $P=\sum_{(u,v)\in E}\big[(2d_{uv}-1)H-d_{uv}(d_{uv}-1)\big]$. Khi chưa tính $\Delta_K$:
+\begin{align}
+|\mathrm{Var}(\mathtt{full})| &= n(2H-1), & |\mathtt{full}| &= n(4H-4)+2H|E|, \label{eq:size-full}\\
+|\mathrm{Var}(\mathtt{pair})| &= n(2H-1), & |\mathtt{pair}| &= n(4H-4)+P, \label{eq:size-pair}\\
+|\mathrm{Var}(\mathtt{direct})| &= nH+n\,a(H), & |\mathtt{direct}| &= n\big(1+\ell(H)\big)+P. \label{eq:size-direct}
+\end{align}
+\end{proposition}
+
+\begin{proof}
+Với mỗi đỉnh, xích \eqref{eq:chain} có $H-2$ mệnh đề; \eqref{eq:channel} cho 3 mệnh đề ở mỗi màu giữa và 2 mệnh đề ở mỗi màu đầu và cuối (một mệnh đề trở thành hằng đúng), tổng $3H-2$. Cộng lại được $4H-4$. Phần khoảng cách và phần AMO suy trực tiếp từ \eqref{eq:pair}, \eqref{eq:interval} và Bảng~\ref{tab:amo}.
+\end{proof}
+
+\subsection{Quy trình giải và chứng nhận tối ưu}\label{sec:procedure}
+
+Bảng~\ref{tab:procedure} là quy trình giải đầy đủ. Bước 5 bỏ qua các ngưỡng không thể cải thiện nghiệm hiện tại. Mệnh đề~\ref{prop:exact} chứng minh rằng giá trị trả về với trạng thái OPT là tối ưu.
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Quy trình giải BCP bằng SAT.}
+\label{tab:procedure}
+\centering\small
+\begin{tabular}{p{0.95\linewidth}}
+\toprule
+\textbf{Đầu vào:} đồ thị $G$, cấu hình mã hóa, solver, giới hạn thời gian $T$.\\
+\textbf{Đầu ra:} span tốt nhất cùng trạng thái OPT, FEAS hoặc TO.\\
+\midrule
+1.\ Tính $H$ và $LB$; sinh các mệnh đề không phụ thuộc $K$ và nạp vào solver; đặt $K\leftarrow H$.\\
+2.\ Thêm $\Delta_K$ vào solver và gọi \textsc{Solve} (hết giờ: trả về FEAS nếu đã có nghiệm, ngược lại TO).\\
+3.\ Nếu UNSAT, trả về nghiệm hiện tại với trạng thái OPT.\\
+4.\ Giải mã phép tô $c$ và kiểm tra bằng hàm độc lập; nếu sai nghĩa là chương trình có lỗi.\\
+5.\ Đặt $B\leftarrow\max_v c(v)$. Nếu $B=LB$, trả về OPT; ngược lại đặt $K\leftarrow B-1$ và quay lại bước 2.\\
+\bottomrule
+\end{tabular}
+\end{table}

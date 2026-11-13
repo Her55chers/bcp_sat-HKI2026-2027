@@ -1,0 +1,9 @@
+python-sat
+pycryptosat
+ortools
+matplotlib
+psutil
+# Tuy chon, can giay phep:
+# gurobipy
+# docplex
+# cplex

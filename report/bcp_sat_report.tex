@@ -1,0 +1,163 @@
+\documentclass[a4paper,fleqn]{cas-sc}
+
+\usepackage{iftex}
+\ifXeTeX
+  \usepackage{fontspec}
+  \setmainfont{TeX Gyre Termes}   % font Times ho tro day du tieng Viet
+\else
+  \usepackage[utf8]{vietnam}      % neu bat buoc dung pdfLaTeX
+\fi
+
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,multirow,longtable}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+
+%% Tuong thich: ban cas-common cu goi \msg_term:n, lenh nay da bi bo khoi expl3 moi.
+\ExplSyntaxOn
+\cs_if_exist:NF \msg_term:n { \cs_new_protected:Npn \msg_term:n #1 { } }
+\ExplSyntaxOff
+
+%% Khong in khoi ghi chu o chan trang dau (tac gia lien he, email, ORCID).
+\providecommand{\printFirstPageNotes}{}\renewcommand{\printFirstPageNotes}{}
+
+\newcommand{\TODO}[1]{\textcolor{red}{[#1]}}
+\newcommand{\AuthorOne}{\TODO{Họ tên Thành viên 1}}\newcommand{\IDOne}{\TODO{MSV}}\newcommand{\EmailOne}{\TODO{email}}
+\newcommand{\AuthorTwo}{\TODO{Họ tên Thành viên 2}}\newcommand{\IDTwo}{\TODO{MSV}}\newcommand{\EmailTwo}{\TODO{email}}
+\newcommand{\GithubURL}{\TODO{link GitHub}}
+\IfFileExists{results/author.tex}{\input{results/author.tex}}{}
+\newcommand{\MachineCPU}{}\newcommand{\MachineCores}{}\newcommand{\MachineRAM}{}
+\newcommand{\MachineOS}{}\newcommand{\PythonVersion}{}\newcommand{\TimeLimit}{}
+\newcommand{\RepeatText}{}\newcommand{\FixedSolver}{}\newcommand{\BestConfig}{}
+\newcommand{\BestSolver}{}\newcommand{\DataScope}{}
+\newcommand{\AutoAbstract}{}\newcommand{\AutoCfg}{}\newcommand{\AutoSolvers}{}
+\newcommand{\AutoScale}{}\newcommand{\AutoCompare}{}\newcommand{\AutoConclusion}{}
+\input{results/auto_text.tex}
+
+%% ---- Ghep phan cua hai thanh vien ------------------------------------------
+%% Moi nguoi chi sua file trong parts/member1 hoac parts/member2.
+%% Bao cao chi HOAN THANH khi co du file cua ca hai nguoi va ca hai da chay xong thuc nghiem.
+\newif\ifMemberOneDone\newif\ifMemberTwoDone
+\IfFileExists{results/members.tex}{\input{results/members.tex}}{}
+\newif\ifReportIncomplete
+\newcommand{\MissingList}{}
+\newcommand{\NoteMissing}[1]{\ReportIncompletetrue\edef\MissingList{\MissingList\space #1;}}
+\newcommand{\RequirePart}[2]{\IfFileExists{parts/member#1/#2.tex}{}{\NoteMissing{\detokenize{#2.tex} của Thành viên #1}}}
+\newcommand{\MemberPart}[2]{\IfFileExists{parts/member#1/#2.tex}{\input{parts/member#1/#2.tex}}{%
+  \par\medskip\noindent\fbox{\parbox{0.96\linewidth}{\centering\textcolor{red}{\bfseries THIẾU PHẦN CỦA THÀNH VIÊN #1: \texttt{parts/member#1/\detokenize{#2}.tex}}}}\par\medskip}}
+\RequirePart{1}{sat_background}\RequirePart{1}{sat_approach}\RequirePart{1}{exp_sat}\RequirePart{1}{app_sat}
+\RequirePart{2}{intro}\RequirePart{2}{problem}\RequirePart{2}{ilp_cp_models}\RequirePart{2}{related_work}
+\RequirePart{2}{exp_setup}\RequirePart{2}{exp_compare}\RequirePart{2}{conclusion}\RequirePart{2}{app_ilp}\RequirePart{2}{app_detail}
+\ifMemberOneDone\else\NoteMissing{thực nghiệm của Thành viên 1}\fi
+\ifMemberTwoDone\else\NoteMissing{thực nghiệm của Thành viên 2}\fi
+\ifReportIncomplete
+  \AddToHook{shipout/background}{\put(1.2cm,-0.8cm){\parbox{\dimexpr\paperwidth-2.4cm}{\centering\small\textcolor{red}{\bfseries BẢN CHƯA HOÀN THÀNH, thiếu:\MissingList}}}}
+\fi
+
+%% ---- ten tieng Viet cho bang, hinh, dinh ly ------------------------------
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\figurename}{Hình}
+\newtheorem{definition}{Định nghĩa}
+\newtheorem{proposition}{Mệnh đề}
+\newproof{proof}{Chứng minh}
+\allowdisplaybreaks[0]
+
+\newcommand{\AMO}{\mathrm{AMO}}
+\newcommand{\ALO}{\mathrm{ALO}}
+
+\begin{document}
+\let\WriteBookmarks\relax
+\def\floatpagepagefraction{1}
+\def\textpagefraction{.001}
+
+\shorttitle{Giải Bandwidth Coloring bằng SAT}
+\shortauthors{\AuthorOne, \AuthorTwo}
+
+\title [mode = title]{Giải bài toán Bandwidth Coloring bằng SAT: so sánh các cách mã hóa và các solver}
+
+\author{\AuthorOne, MSV - \IDOne}
+\credit{Methodology, Software (encoder SAT, kiểm thử), Validation, Investigation (thí nghiệm mã hóa và SAT solver), Writing -- original draft}
+
+\author{\AuthorTwo, MSV - \IDTwo}
+\credit{Conceptualization, Software (mô hình ILP và CP, tổng hợp kết quả), Data curation, Investigation (thí nghiệm ILP và CP), Writing -- original draft}
+
+\begin{abstract}
+Bài toán tô màu băng thông (Bandwidth Coloring Problem, BCP) gán cho mỗi đỉnh của một đồ thị có trọng số cạnh một màu nguyên sao cho hai đỉnh kề nhau có màu cách nhau ít nhất bằng trọng số của cạnh, và cực tiểu màu lớn nhất. Đây là bài toán NP-khó, tổng quát hóa bài toán tô màu đồ thị. Trong bài tập lớn này, ta xây dựng một bộ giải BCP dựa trên SAT: với mỗi ngưỡng $K$, bài toán được đưa về một công thức CNF, rồi ngưỡng được giảm dần cho đến khi solver trả về UNSAT, nhờ đó giá trị tìm được là tối ưu đã chứng nhận. Ta cài đặt mã hóa kết hợp biến exact và biến order, trong đó mỗi khoảng màu bị cấm chỉ cần một mệnh đề, và so sánh với mã hóa trực tiếp dùng năm cách mã hóa AMO: pairwise, sequential counter, binary, commander và product. Ta đưa ra công thức tính số biến và số mệnh đề và kiểm tra lại bằng chương trình. Trên đề GEOM120b, mã hóa kết hợp có 390.726 mệnh đề, trong khi mã hóa trực tiếp cần từ 1.602.369 đến 2.321.529 mệnh đề. Công thức được giải bằng các SAT solver CaDiCaL, Glucose, CryptoMiniSat, Kissat và được so sánh với Gurobi, CPLEX MIP, CPLEX CP và OR-Tools CP-SAT. \AutoAbstract
+\end{abstract}
+
+\begin{keywords}
+bandwidth coloring \sep tô màu đồ thị \sep mã hóa SAT \sep SAT tăng dần \sep tối ưu chính xác
+\end{keywords}
+
+\maketitle
+
+%% ============================================================================
+\MemberPart{2}{intro}
+
+%% ============================================================================
+\section{Background}\label{sec:background}
+
+\MemberPart{2}{problem}
+\MemberPart{1}{sat_background}
+\MemberPart{2}{ilp_cp_models}
+\MemberPart{2}{related_work}
+
+%% ============================================================================
+\MemberPart{1}{sat_approach}
+
+%% ============================================================================
+\section{Computational experiments}\label{sec:exp}
+
+\MemberPart{2}{exp_setup}
+\MemberPart{1}{exp_sat}
+\MemberPart{2}{exp_compare}
+
+%% ============================================================================
+\MemberPart{2}{conclusion}
+
+\section*{Phân công công việc}
+
+\begin{table}[width=\linewidth,pos=h]
+\caption{Phân công giữa hai thành viên. Báo cáo chỉ hoàn thành khi có đủ phần của cả hai.}
+\label{tab:division}
+\centering\small
+\begin{tabular}{p{0.15\linewidth}p{0.39\linewidth}p{0.39\linewidth}}
+\toprule
+& \AuthorOne{} (\EmailOne) & \AuthorTwo{} (\EmailTwo)\\
+\midrule
+Code & \texttt{bcp\_sat.py}, \texttt{make\_example\_figure.py} & \texttt{exact\_models.py}, \texttt{run\_experiments.py}\\
+Thực nghiệm & cấu hình mã hóa, AMO, SAT solver & Gurobi, CPLEX MIP, CPLEX CP, CP-SAT; đối chiếu giá trị tham khảo\\
+Báo cáo & Mục 2.2, Mục 3, Mục 4.3--4.6, chứng minh mã hóa & Mục 1, 2.1, 2.3, 2.4, 4.1, 4.2, 4.7--4.9, Mục 5, các phụ lục còn lại\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\printcredits
+
+\section*{Declaration of competing interest}
+Tác giả cam kết không có xung đột lợi ích tài chính hay quan hệ cá nhân nào có thể ảnh hưởng đến nội dung báo cáo.
+
+\section*{Data availability}
+Mã nguồn, dữ liệu và kết quả thô có tại \GithubURL.
+
+\section*{Declaration of generative AI and AI-assisted technologies}
+\TODO{Khai báo trung thực công cụ AI đã dùng và phạm vi sử dụng.} Tác giả đã rà soát, chỉnh sửa và chịu trách nhiệm hoàn toàn về nội dung báo cáo.
+
+%% ============================================================================
+\appendix
+\renewcommand{\thesection}{Appendix~\Alph{section}}
+
+\section{Chứng minh tính đúng}\label{app:proofs}
+
+\MemberPart{2}{app_ilp}
+\MemberPart{1}{app_sat}
+
+\MemberPart{2}{app_detail}
+
+\bibliographystyle{cas-model2-names}
+\bibliography{bcp-refs}
+
+\end{document}

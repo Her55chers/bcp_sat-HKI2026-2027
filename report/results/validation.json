@@ -1,0 +1,65 @@
+{
+ "amo": {
+  "pairwise": {
+   "exhaustive": 2046,
+   "low_weight": 2394,
+   "up": 2079,
+   "formula_m2_200": true,
+   "ok": true
+  },
+  "seq": {
+   "exhaustive": 2046,
+   "low_weight": 2394,
+   "up": 2079,
+   "formula_m2_200": true,
+   "ok": true
+  },
+  "binary": {
+   "exhaustive": 2046,
+   "low_weight": 2394,
+   "up": 2079,
+   "formula_m2_200": true,
+   "ok": true
+  },
+  "commander": {
+   "exhaustive": 2046,
+   "low_weight": 2394,
+   "up": 2079,
+   "formula_m2_200": true,
+   "ok": true
+  },
+  "product": {
+   "exhaustive": 2046,
+   "low_weight": 2394,
+   "up": 2079,
+   "formula_m2_200": true,
+   "ok": true
+  }
+ },
+ "bcp": {
+  "random_graphs": 200,
+  "search_runs": 1800,
+  "search_ok": true,
+  "threshold_cases": 1569,
+  "threshold_ok": true,
+  "size_cases": 900,
+  "size_ok": true,
+  "example_spans": {
+   "full": 6,
+   "no-sym": 6,
+   "pair": 6,
+   "non-inc": 6,
+   "direct-pairwise": 6,
+   "direct-seq": 6,
+   "direct-binary": 6,
+   "direct-commander": 6,
+   "direct-product": 6
+  },
+  "example_ok": true,
+  "unit_weight_ok": true,
+  "reader_ok": true,
+  "instances_checked": 53,
+  "instances_ok": true
+ },
+ "seconds": 8.9
+}

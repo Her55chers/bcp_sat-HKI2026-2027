@@ -1,0 +1,37 @@
+%% Phan cua Thanh vien 1
+\begin{proposition}[Liên kết]\label{prop:channel}
+Mỗi phép gán thỏa \eqref{eq:chain} và \eqref{eq:channel} xác định duy nhất một màu $c(v)\in\{1,\dots,H\}$ cho mỗi đỉnh, với $g_{v,j}$ đúng khi và chỉ khi $c(v)\ge j$. Ngược lại, mọi hàm màu đều mở rộng được thành phép gán như vậy.
+\end{proposition}
+\begin{proof}
+Theo \eqref{eq:chain}, dãy $g_{v,1},\dots,g_{v,H+1}$ không tăng, bắt đầu bằng đúng và kết thúc bằng sai, nên có đúng một chỉ số $j$ với $g_{v,j}$ đúng và $g_{v,j+1}$ sai. Theo \eqref{eq:channel}, đó là chỉ số duy nhất có $x_{v,j}$ đúng. Chiều ngược suy ra từ ngữ nghĩa của các biến.
+\end{proof}
+
+\begin{proposition}[Khoảng cách]\label{prop:dist}
+Với ngữ nghĩa ở Mệnh đề~\ref{prop:channel}, các mệnh đề \eqref{eq:interval} của cạnh $(u,v)$ được thỏa khi và chỉ khi $|c(u)-c(v)|\ge d_{uv}$.
+\end{proposition}
+\begin{proof}
+Đặt $a=c(u)$. Chỉ mệnh đề chứa $x_{u,a}$ mới ràng buộc, và nó phát biểu $c(v)\le a-d_{uv}$ hoặc $c(v)\ge a+d_{uv}$, tương đương $|a-c(v)|\ge d_{uv}$.
+\end{proof}
+
+\begin{proposition}[Phản xạ]\label{prop:sym}
+Nếu có phép tô hợp lệ với span không quá $K$ thì có phép tô hợp lệ với span không quá $K$ và $c(a)\le\lceil K/2\rceil$.
+\end{proposition}
+\begin{proof}
+Nếu $c(a)>\lceil K/2\rceil$, đặt $c'(v)=K+1-c(v)$. Phép này giữ $|c(u)-c(v)|$ và miền $[1,K]$, đồng thời $c'(a)\le K-\lceil K/2\rceil=\lfloor K/2\rfloor\le\lceil K/2\rceil$.
+\end{proof}
+
+\begin{proposition}[Tính đúng của mã hóa]\label{prop:correct}
+Với $1\le K\le H$, công thức $F(K)$ của \texttt{full} thỏa mãn được khi và chỉ khi $G$ có phép tô hợp lệ với span không quá $K$.
+\end{proposition}
+\begin{proof}
+Từ một mô hình, Mệnh đề~\ref{prop:channel} cho hàm màu, Mệnh đề~\ref{prop:dist} cho \eqref{eq:sep}, và $\neg g_{v,K+1}$ cho $c(v)\le K$. Ngược lại, Mệnh đề~\ref{prop:sym} đưa đỉnh neo về nửa dưới, rồi Mệnh đề~\ref{prop:channel} mở rộng phép tô thành mô hình.
+\end{proof}
+
+\begin{proposition}[Tính chính xác của tìm kiếm]\label{prop:exact}
+Nếu không hết giờ, quy trình ở Bảng~\ref{tab:procedure} dừng với trạng thái OPT và trả về $\chi_B(G)$.
+\end{proposition}
+\begin{proof}
+Với $K$ giảm dần, $\Delta_K$ kéo theo mọi $\Delta_{K'}$ có $K'>K$ qua \eqref{eq:chain}, nên công thức tích lũy tương đương $F(K)$ ở ngưỡng hiện tại; mệnh đề học được là hệ quả logic nên không đổi tính thỏa. $K$ giảm nghiêm ngặt sau mỗi lần SAT nên quy trình dừng. Khi dừng, hoặc có nghiệm $B$ kèm UNSAT tại $B-1$, hoặc $B=LB$; cả hai trường hợp đều cho $\chi_B(G)=B$ theo Mệnh đề~\ref{prop:correct}.
+\end{proof}
+
+Tính đúng của năm cách mã hóa AMO có thể kiểm tra trực tiếp: hai biến cùng đúng làm vi phạm công thức, không quá một biến đúng thì chọn được giá trị cho biến phụ, và phép gán $x_i=1$ cho phép UP suy ra mọi $\neg x_j$. Bảng~\ref{tab:validation} xác nhận các tính chất này bằng chương trình.

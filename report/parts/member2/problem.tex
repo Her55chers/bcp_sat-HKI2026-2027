@@ -1,0 +1,22 @@
+%% Phan cua Thanh vien 2
+\subsection{Phát biểu bài toán}\label{sec:problem}
+
+\begin{definition}[Bandwidth Coloring]\label{def:bcp}
+Cho đồ thị vô hướng $G=(V,E)$ với $n=|V|$ và trọng số nguyên dương $d_{uv}$ trên mỗi cạnh. Một \emph{phép tô hợp lệ} là hàm $c:V\to\mathbb{Z}_{>0}$ thỏa mãn
+\begin{equation}
+|c(u)-c(v)|\ge d_{uv}\qquad\forall (u,v)\in E. \label{eq:sep}
+\end{equation}
+Bài toán yêu cầu tìm phép tô hợp lệ có màu lớn nhất (gọi là \emph{span}) nhỏ nhất:
+\begin{equation}
+\chi_B(G)=\min_{c}\ \max_{v\in V}c(v). \label{eq:obj}
+\end{equation}
+\end{definition}
+
+Hình~\ref{fig:example} là một ví dụ nhỏ. Đỉnh $v_1$ và $v_4$ không kề nhau nên có thể dùng chung màu. Không có phép tô hợp lệ nào có span 5, nên $\chi_B(G)=6$.
+
+\begin{figure}[pos=t]
+\centering
+\input{figures/bcp_example.tex}
+\caption{Ví dụ BCP với 4 đỉnh và 5 cạnh. Đỉnh tô đậm là đỉnh có màu lớn nhất.}
+\label{fig:example}
+\end{figure}

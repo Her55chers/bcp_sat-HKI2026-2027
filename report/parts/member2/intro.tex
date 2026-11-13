@@ -1,0 +1,16 @@
+%% Phan cua Thanh vien 2
+\section{Introduction}\label{sec:intro}
+
+Tô màu băng thông xuất hiện khi phân bổ tần số~\citep{nguyen2026bcp}: hai trạm phát ở gần nhau phải dùng hai tần số cách nhau đủ xa, và ta muốn dùng dải tần hẹp nhất có thể. Trên đồ thị, mỗi trạm là một đỉnh, mỗi cặp trạm gây nhiễu là một cạnh, và trọng số cạnh là khoảng cách tần số tối thiểu. Khi mọi trọng số bằng 1, BCP trở về bài toán tô màu đồ thị, vì vậy BCP là NP-khó~\citep{nguyen2026bcp}.
+
+Các phương pháp metaheuristic không đảm bảo nghiệm tìm được là tối ưu~\citep{nguyen2026bcp}. Để có chứng nhận tối ưu cần các phương pháp chính xác: quy hoạch nguyên tuyến tính (ILP), quy hoạch ràng buộc (CP) và SAT. Điểm khó của SAT là phải tự chọn cách mã hóa. Với BCP, kích thước công thức phụ thuộc chủ yếu vào cách mã hóa ràng buộc khoảng cách: trên đề GEOM120b, với mã hóa trực tiếp và sequential counter, 97,5\% số mệnh đề là mệnh đề khoảng cách. Vì vậy chọn mã hóa nào là câu hỏi quan trọng.
+
+Trong bài tập lớn này ta đã làm các việc sau:
+\begin{itemize}
+\item mô tả các cách mã hóa BCP, giải thích vì sao chúng đúng và vì sao tìm kiếm giảm dần cho nghiệm tối ưu (Mục~\ref{sec:sat} và \ref{app:proofs});
+\item cài đặt năm cách mã hóa AMO, tính số biến và số mệnh đề của từng cấu hình, và viết chương trình kiểm tra tính đúng đắn (Mục~\ref{sec:amo} và~\ref{sec:validation});
+\item viết chương trình giải hoàn chỉnh: sinh CNF, gọi SAT solver qua PySAT~\citep{ignatiev2018}, đọc kết quả, kiểm tra nghiệm và đối chiếu với giá trị đã công bố;
+\item so sánh các cấu hình mã hóa, các SAT solver và các solver ILP, CP \DataScope{} (Mục~\ref{sec:exp}).
+\end{itemize}
+
+Phần còn lại của báo cáo gồm: Mục~\ref{sec:background} trình bày bài toán, kiến thức về SAT và các nghiên cứu liên quan; Mục~\ref{sec:sat} trình bày cách mã hóa SAT; Mục~\ref{sec:exp} là thực nghiệm; Mục~\ref{sec:conclusion} là kết luận.

@@ -1,0 +1,6 @@
+%% Phan cua Thanh vien 1
+\subsection{SAT, CNF và SAT solver}\label{sec:sat-bg}
+
+Một công thức CNF là hội (AND) của các mệnh đề (clause), mỗi mệnh đề là tuyển (OR) của các literal. Bài toán SAT hỏi có tồn tại cách gán giá trị đúng/sai cho các biến để mọi mệnh đề đều đúng hay không. Kỹ thuật cơ bản trong SAT solver là \emph{lan truyền đơn vị} (unit propagation, UP): nếu một mệnh đề chỉ còn đúng một literal chưa gán và các literal khác đều sai thì literal đó buộc phải đúng. Các solver hiện đại theo kiểu CDCL kết hợp UP với việc học mệnh đề mới từ các xung đột. Solver \emph{tăng dần} (incremental) cho phép thêm mệnh đề sau một lần giải và giữ lại những gì đã học. Bài này dùng CaDiCaL và Glucose qua PySAT~\citep{ignatiev2018}, cùng với CryptoMiniSat và Kissat.
+
+Với tập literal $X=\{x_1,\dots,x_m\}$, $\ALO(X)$ là một mệnh đề duy nhất $x_1\vee\dots\vee x_m$, còn $\AMO(X)$ yêu cầu có nhiều nhất một biến đúng. Một cách mã hóa AMO có thể thêm các biến phụ $Y$. Ta nói cách mã hóa là \emph{đúng} nếu với mọi cách gán cho $X$, công thức còn thỏa mãn được khi và chỉ khi có không quá một $x_i$ đúng.

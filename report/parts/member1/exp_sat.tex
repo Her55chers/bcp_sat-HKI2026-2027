@@ -1,0 +1,85 @@
+%% Phan cua Thanh vien 1
+\subsection{Kích thước công thức}\label{sec:exp-size}
+
+Bảng~\ref{tab:size-cls}, Bảng~\ref{tab:size-vars} và Hình~\ref{fig:size} cho kích thước công thức trên một số đề GEOM. Các số này tính theo Mệnh đề~\ref{prop:size} và đã được đếm lại trực tiếp từ encoder (Mục~\ref{sec:validation}).
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Số mệnh đề (chưa tính $\Delta_K$). Năm cột cuối là các cấu hình \texttt{direct} với AMO tương ứng. Giá trị nhỏ nhất trên mỗi hàng được in đậm.}
+\label{tab:size-cls}
+\centering\footnotesize
+\input{tables/size_cls.tex}
+\end{table}
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Số biến (chưa tính $\Delta_K$). Năm cột cuối là các cấu hình \texttt{direct} với AMO tương ứng. Giá trị nhỏ nhất trên mỗi hàng được in đậm.}
+\label{tab:size-vars}
+\centering\footnotesize
+\input{tables/size_vars.tex}
+\end{table}
+
+\begin{figure}[pos=t]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/encoding_size.pdf}
+\caption{Kích thước công thức trên họ đề GEOM thưa (thang log).}
+\label{fig:size}
+\end{figure}
+
+Từ bảng và hình có thể thấy mấy điểm sau. Thứ nhất, \texttt{full} có ít mệnh đề nhất trên mọi đề trong bảng, nhờ \eqref{eq:interval}: trên GEOM120b nó có 390.726 mệnh đề, chỉ bằng 24\% của \texttt{pair} (1.615.809) dù hai cấu hình có cùng số biến. Thứ hai, cấu hình \texttt{direct} với pairwise có ít biến nhất (13.560 so với 27.000 của \texttt{full} trên GEOM120b) nhưng nhiều mệnh đề nhất (2.321.529). Thứ ba, khác với các bài toán mà AMO chiếm gần hết công thức, ở đây mệnh đề khoảng cách \eqref{eq:pair} áp đảo: trên GEOM120b, 1.562.049 trong 1.602.369 mệnh đề của \texttt{direct} với sequential counter (97,5\%) là mệnh đề khoảng cách. Vì vậy ngoài pairwise, bốn cách mã hóa AMO còn lại có số mệnh đề chỉ chênh nhau khoảng 5\% trên đề này. Tuy vậy, thời gian chạy của solver không chỉ phụ thuộc vào kích thước, nên các con số này chỉ là điểm xuất phát cho các thí nghiệm bên dưới.
+
+\subsection{Kiểm tra tính đúng}\label{sec:validation}
+
+Trước khi đo thời gian, ta kiểm tra encoder bằng các bài kiểm tra trong Bảng~\ref{tab:validation}. Các bài kiểm tra dùng một bộ giải DPLL nhỏ viết kèm trong code, độc lập với các solver CDCL ở Bảng~\ref{tab:solvers}. Tất cả đều đạt.
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Các bài kiểm tra (tất cả đều đạt). Bốn dòng đầu tính cho mỗi cách mã hóa AMO.}
+\label{tab:validation}
+\centering\small
+\begin{tabular}{p{0.74\linewidth}r}
+\toprule
+Bài kiểm tra & Số trường hợp\\
+\midrule
+AMO, vét cạn: mọi $2^m$ cách gán cho $x_1,\dots,x_m$ với $m=1,\dots,10$; SAT khi và chỉ khi có nhiều nhất một biến đúng & 2.046\\
+AMO, mọi cách gán có 0, 1 hoặc 2 biến đúng, $m=11,\dots,24$ & 2.394\\
+Tính lan truyền: UP từ $x_i=1$ suy ra mọi $\neg x_j$, không xung đột, $m=2,\dots,64$, mọi $i$ & 2.079\\
+Công thức kích thước AMO (Bảng~\ref{tab:amo}) so với chương trình, $m=2,\dots,200$ & 199\\
+\midrule
+Tìm kiếm giảm dần so với vét cạn: 200 đồ thị ngẫu nhiên ($n\le 6$, $d\le 4$) $\times$ 9 cấu hình; trạng thái OPT và span trùng với vét cạn & 1.800\\
+$F(K)$ thỏa mãn được khi và chỉ khi $\chi_B(G)\le K$, ở mọi $K$, 3 cấu hình & 1.569\\
+Công thức kích thước (Mệnh đề~\ref{prop:size}) so với chương trình, 9 cấu hình & 900\\
+Ví dụ ở Hình~\ref{fig:example}: span 6 ở cả 9 cấu hình, UNSAT tại $K=5$ & 9\\
+Trọng số đơn vị trùng với tô màu đồ thị: $K_4$ cần 4 màu, $C_5$ cần 3 màu & 2\\
+Số đỉnh và số cạnh đọc từ file trùng với số liệu của~\citet{nguyen2026bcp} & 53\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Ảnh hưởng của cách mã hóa}\label{sec:exp-cfg}
+
+Bảng~\ref{tab:res-cfg} so sánh các cấu hình mã hóa khi dùng cùng một solver (\FixedSolver). \AutoCfg
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Ảnh hưởng của cách mã hóa với \FixedSolver: số đề chứng nhận tối ưu / tổng số đề (PAR-2, giây). Ô in đậm là tốt nhất trên mỗi cột.}
+\label{tab:res-cfg}
+\centering\small
+\input{tables/res_cfg.tex}
+\end{table}
+
+\subsection{So sánh các SAT solver}\label{sec:exp-solvers}
+
+Bảng~\ref{tab:res-solvers} so sánh các SAT solver với hai cấu hình: cấu hình tốt nhất ở Bảng~\ref{tab:res-cfg} và \texttt{direct-pairwise}, để xem cấu hình tốt cho \FixedSolver{} có tốt cho các solver khác hay không. Hình~\ref{fig:cactus} vẽ phân bố thời gian với cấu hình tốt nhất. \AutoSolvers{} Lưu ý rằng Kissat, và CryptoMiniSat nếu gọi bằng file chạy riêng, được chạy lại từ đầu ở mỗi ngưỡng nên không dùng lại được những gì đã học.
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Các SAT solver với cấu hình tốt nhất (\BestConfig) và với \texttt{direct-pairwise}: số đề chứng nhận tối ưu / tổng số đề (PAR-2, giây).}
+\label{tab:res-solvers}
+\centering\small
+\input{tables/res_solvers.tex}
+\end{table}
+
+\begin{figure}[pos=t]
+\centering
+\IfFileExists{figures/cactus.pdf}{%
+  \includegraphics[width=0.75\linewidth]{figures/cactus.pdf}}{%
+  \fbox{\parbox[c][4.2cm][c]{0.7\linewidth}{\centering\textcolor{red}{[Biểu đồ cactus: tự sinh khi chạy \texttt{run\_experiments.py run}, lưu tại \texttt{figures/cactus.pdf}.]}}}}
+\caption{Biểu đồ cactus của các solver trên toàn bộ dữ liệu. Đường càng thấp và càng dài về bên phải thì solver càng tốt.}
+\label{fig:cactus}
+\end{figure}

@@ -1,0 +1,20 @@
+%% Phan cua Thanh vien 2
+\section{Kết quả chi tiết}\label{app:detail}
+
+{\footnotesize
+\input{tables/res_detail.tex}
+}
+
+\section{Chạy lại kết quả}\label{app:repro}
+
+Toàn bộ bảng và hình có thể sinh lại bằng các lệnh sau:
+\begin{verbatim}
+# Thanh vien 1
+python bcp_sat.py sizes  --out ../report      # Bang 1, 6, 7, Hinh 3
+python bcp_sat.py verify --out ../report      # Bang 8
+python make_example_figure.py                 # Hinh 1
+python run_experiments.py run --member 1 --profile full   # Bang 9, 10, Hinh 4
+# Thanh vien 2, dung ket qua cua Thanh vien 1
+python run_experiments.py run --member 2      # Bang 11, 13
+\end{verbatim}
+Kết quả từng lần chạy được lưu trong \texttt{results/runs\_member1.csv} và \texttt{results/runs\_member2.csv}.
