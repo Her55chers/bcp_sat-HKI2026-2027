@@ -39,7 +39,7 @@ META = {1: os.path.join(REPORT, "results", "meta_member1.json"), 2: os.path.join
 MEMBERS = os.path.join(REPORT, "results", "members.tex")
 REFS = os.path.join(INST, "reference_values.csv")
 
-ORDER_CFG = ["full", "no-sym", "pair", "non-inc"]
+ORDER_CFG = ["full", "compact", "no-sym", "pair", "non-inc"]
 DIRECT_CFG = [f"direct-{k}" for k in S.AMO]
 CFGS = ORDER_CFG + DIRECT_CFG
 SIMPLE_CFG = "direct-pairwise"
@@ -125,9 +125,9 @@ def make_backend_factory(solver, a, deadline):
     return lambda nv: S.PySATBackend(solver)
 
 def worker(a):
+    # H and LB come from the method itself, so the time to compute them is counted
     g = S.read_col(a.instance); t0 = time.perf_counter(); deadline = t0 + a.time_limit
-    H, lb = bounds(g)
-    out = dict(status="ERR", span="", H=H, LB=lb, t_build=0, t_solve=0, t_total=0)
+    out = dict(status="ERR", span="", H="", LB="", t_build=0, t_solve=0, t_total=0)
     def log(**kw):
         if a.progress:
             with open(a.progress, "a") as f: f.write(json.dumps(kw) + "\n")
@@ -142,17 +142,19 @@ def worker(a):
             _, solver, config = a.method.split(":")
             cfg = S.CONFIGS[config]; state = {}
             def built(r):
-                state.update(vars=r["vars"], clauses=r["clauses"], t_build=r["t_build"]); log(vars=r["vars"], clauses=r["clauses"], t_build=r["t_build"])
+                info = dict(vars=r["vars"], clauses=r["clauses"], t_build=r["t_build"], H=r["H"], LB=r["LB"])
+                state.update(info); log(**info)
             def inc(b):
                 state["span"] = b; log(span=b, t=time.perf_counter() - t0)
             try:
                 r = S.search(g, cfg, make_backend_factory(solver, a, deadline), on_incumbent=inc, on_built=built)
                 total = time.perf_counter() - t0
                 out.update(vars=r["vars"], clauses=r["clauses"], t_build=r["t_build"], t_solve=total - r["t_build"], t_total=total,
-                           span=r["span"] if r["span"] else "", calls=r["calls"])
+                           span=r["span"] if r["span"] else "", calls=r["calls"], H=r["H"], LB=r["LB"])
                 out["status"] = {"OPTIMAL": "OPT", "WRONG": "WRONG"}.get(r["status"], "ERR")
             except TimeUp:
                 out.update(vars=state.get("vars", ""), clauses=state.get("clauses", ""), t_build=state.get("t_build", 0),
+                           H=state.get("H", ""), LB=state.get("LB", ""),
                            span=state.get("span", ""), t_total=a.time_limit, status="FEAS" if state.get("span") else "TO")
         if out["t_total"] > a.time_limit and out["status"] == "OPT":
             out["status"] = "FEAS" if out["span"] else "TO"
@@ -210,7 +212,8 @@ def run_one(method, inst, T, paths):
                 d = json.loads(l)
                 if "span" in d: out.update(status="FEAS", span=d["span"])
                 else: out.update(d)
-            g = S.read_col(inst); out.update(H=max(S.first_fit(g)), LB=S.lower_bound(g))
+            if out.get("H", "") == "" or out.get("LB", "") == "":   # killed before the bounds were logged
+                _, H, lb = bounds(S.read_col(inst)); out.update(H=H, LB=lb)
             return out
     finally:
         try: os.remove(prog)

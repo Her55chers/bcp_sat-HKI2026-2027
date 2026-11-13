@@ -187,7 +187,7 @@ def is_valid_coloring(g, c):
             all(abs(c[u] - c[v]) >= d for u, v, d in g.edges))
 
 def first_fit(g):
-    """Greedy colouring by decreasing degree; its span is the upper bound H."""
+    """Greedy colouring by decreasing degree (simple baseline, used by the tests)."""
     c = {}
     for v in sorted(range(g.n), key=lambda v: (-len(g.adj[v]), v)):
         k = 1
@@ -195,8 +195,165 @@ def first_fit(g):
         c[v] = k
     return [c[v] for v in range(g.n)]
 
-def lower_bound(g):
+def first_fit_order(g, order, c=None):
+    """First-fit along `order`: smallest colour outside the forbidden intervals
+    (c(w)-d, c(w)+d) of the already coloured neighbours. O(deg log deg) per vertex."""
+    c = [0] * g.n if c is None else c
+    for v in order:
+        k = 1
+        for a, b in sorted((c[w] - d + 1, c[w] + d - 1) for w, d in g.adj[v] if c[w]):
+            if a > k: break
+            if b >= k: k = b + 1
+        c[v] = k
+    return c
+
+def dsatur_order(g):
+    """Order by 'saturation': next vertex is the one whose coloured neighbours forbid the
+    most colours (sum of 2d-1), ties by weighted degree."""
+    wdeg = [sum(2 * d - 1 for _, d in g.adj[v]) for v in range(g.n)]
+    sat, left, order = [0] * g.n, set(range(g.n)), []
+    while left:
+        v = max(left, key=lambda v: (sat[v], wdeg[v], -v)); left.discard(v); order.append(v)
+        for w, d in g.adj[v]: sat[w] += 2 * d - 1
+    return order
+
+def heuristic_coloring(g, lb=0, iters=2000, seed=0):
+    """Upper bound: best of three greedy orders (degree, weighted degree, DSATUR), then
+    iterated greedy (Culberson): re-run first-fit with the vertices grouped by their
+    current colour class (classes reversed, shuffled or by size), with a few random
+    swaps. Deterministic for a given seed; stops early when the span reaches lb."""
+    if g.n == 0: return []
+    rng = random.Random(seed)
+    deg = [len(a) for a in g.adj]; wdeg = [sum(2 * d - 1 for _, d in g.adj[v]) for v in range(g.n)]
+    starts = [sorted(range(g.n), key=lambda v: (-deg[v], v)), sorted(range(g.n), key=lambda v: (-wdeg[v], v)), dsatur_order(g)]
+    best = min((first_fit_order(g, o) for o in starts), key=max); cur = best
+    for _ in range(iters):
+        if max(best) <= lb: break
+        cls, r = sorted(set(cur)), rng.random()
+        if r < 0.4: cls.reverse()
+        elif r < 0.7: rng.shuffle(cls)
+        else:
+            size = collections.Counter(cur); cls.sort(key=lambda k: -size[k])
+        rank = {k: i for i, k in enumerate(cls)}
+        order = sorted(range(g.n), key=lambda v: (rank[cur[v]], rng.random()))
+        if rng.random() < 0.2:
+            for _ in range(2):
+                i, j = rng.randrange(g.n), rng.randrange(g.n); order[i], order[j] = order[j], order[i]
+        new = first_fit_order(g, order)
+        if max(new) <= max(cur) or rng.random() < 0.05: cur = new
+        if max(cur) < max(best): best = cur
+    return best
+
+def weight_lower_bound(g):
+    """Trivial bound: the two ends of the heaviest edge are d apart."""
     return max((d for _, _, d in g.edges), default=0) + 1
+
+def maximal_cliques(g, cap=20000):
+    """Bron-Kerbosch with pivoting; stops after `cap` cliques (the bound stays valid)."""
+    N = [set(w for w, _ in g.adj[v]) for v in range(g.n)]; out = []
+    def bk(R, P, X):
+        if len(out) >= cap: return
+        if not P and not X: out.append(R); return
+        u = max(P | X, key=lambda w: len(P & N[w]))
+        for v in list(P - N[u]):
+            bk(R + [v], P & N[v], X & N[v]); P = P - {v}; X = X | {v}
+    bk([], set(range(g.n)), set())
+    return out
+
+def _mst(C, W):
+    if len(C) < 2: return 0
+    best = {v: W[C[0]][v] for v in C[1:]}; tot = 0
+    while best:
+        v = min(best, key=best.get); tot += best.pop(v)
+        for u in best: best[u] = min(best[u], W[v][u])
+    return tot
+
+def _path_bound(C, W):
+    """Lower bound on the lightest Hamiltonian path of clique C: max(MST, degree bound).
+    In a path the two ends touch one path edge, every inner vertex touches two."""
+    if len(C) < 2: return 0
+    if len(C) == 2: return W[C[0]][C[1]]
+    m12, m2 = [], []
+    for v in C:
+        a, b = sorted(W[v][u] for u in C if u != v)[:2]
+        m12.append(a + b); m2.append(b)
+    m2.sort()
+    return max(_mst(C, W), -(-(sum(m12) - m2[-1] - m2[-2]) // 2))
+
+class _Enough(Exception): pass
+
+def clique_span(C, W, budget=20000, stop_at=-1):
+    """Exact smallest (span - 1) of clique C with every pair separated, by branch and
+    bound over the colour order. Returns None when the node budget runs out. Stops as
+    soon as an order with value <= stop_at is found (it cannot raise the bound then)
+    and returns that value."""
+    best, nodes = [10 ** 9], [0]
+    def dfs(placed, pos, rem, top):
+        nodes[0] += 1
+        if nodes[0] > budget: raise TimeoutError
+        if not rem:
+            best[0] = min(best[0], top)
+            if best[0] <= stop_at: raise _Enough
+            return
+        e = {r: max((pos[j] + W[j][r] for j in placed), default=0) for r in rem}
+        # the remaining vertices all come after the placed ones and form a path
+        if max(max(e.values()), min(e.values()) + _path_bound(list(rem), W)) >= best[0]: return
+        for r in sorted(rem, key=e.get):
+            if e[r] >= best[0]: continue
+            pos[r] = e[r]; dfs(placed + [r], pos, rem - {r}, e[r]); del pos[r]
+    try:
+        dfs([], {}, frozenset(C), 0); return best[0]
+    except _Enough:
+        return best[0]
+    except TimeoutError:
+        return None
+
+def lower_bound(g, exact_max=12):
+    """Clique bound. Sorted by colour, the vertices of a clique are pairwise separated,
+    so span >= 1 + the smallest span of any clique. Computed exactly for cliques of at
+    most `exact_max` vertices (branch and bound), otherwise 1 + a Hamiltonian-path bound.
+    Never below weight_lower_bound."""
+    lb = weight_lower_bound(g)
+    if not g.edges: return lb
+    W = [dict() for _ in range(g.n)]
+    for u, v, d in g.edges: W[u][v] = W[v][u] = d
+    cl = sorted(((C, _path_bound(C, W)) for C in maximal_cliques(g) if len(C) >= 2), key=lambda t: -t[1])
+    for C, pb in cl:
+        lb = max(lb, pb + 1)
+        if len(C) <= exact_max:
+            s = clique_span(C, W, stop_at=lb - 1)
+            if s is not None: lb = max(lb, s + 1)
+    return lb
+
+def peel(g, lb):
+    """Low-degree reduction. A vertex v whose remaining neighbours forbid fewer than lb
+    colours in total (sum of 2d-1 < lb) can always be coloured inside [1, K] for every
+    K >= lb, whatever the others do. Remove such vertices repeatedly. Returns
+    (reduced graph, kept original vertices in reduced order, removed vertices in removal
+    order). Every threshold the search asks is >= lb, so the reduced graph has a
+    colouring of span <= K exactly when G has one."""
+    load = [sum(2 * d - 1 for _, d in g.adj[v]) for v in range(g.n)]
+    alive, removed = [True] * g.n, []
+    todo = [v for v in range(g.n) if load[v] < lb]
+    while todo:
+        v = todo.pop()
+        if not alive[v] or load[v] >= lb: continue
+        alive[v] = False; removed.append(v)
+        for w, d in g.adj[v]:
+            if alive[w]:
+                load[w] -= 2 * d - 1
+                if load[w] < lb: todo.append(w)
+    keep = [v for v in range(g.n) if alive[v]]; idx = {v: i for i, v in enumerate(keep)}
+    E = [(idx[u], idx[v], d) for u, v, d in g.edges if alive[u] and alive[v]]
+    return Graph(len(keep), E, g.name), keep, removed
+
+def unpeel(g, part, keep, removed):
+    """Colouring of G from a colouring `part` of the reduced graph: put the removed
+    vertices back in reverse order, each with first-fit. A vertex sees at most the
+    neighbours it had when removed, so its colour is at most lb."""
+    c = [0] * g.n
+    for i, v in enumerate(keep): c[v] = part[i]
+    return first_fit_order(g, reversed(removed), c)
 
 def anchor_vertex(g):
     """Largest degree, then largest neighbour-degree sum, then smallest index."""
@@ -212,21 +369,24 @@ CONFIGS = {
     "no-sym":  Config("no-sym", "order", "interval", None, False, True),
     "pair":    Config("pair", "order", "pairwise", None, True, True),
     "non-inc": Config("non-inc", "order", "interval", None, True, False),
+    "compact": Config("compact", "compact", "interval", None, True, True),
 }
 for _k in AMO:
     CONFIGS[f"direct-{_k}"] = Config(f"direct-{_k}", "direct", "pairwise", _k, True, True)
 CONFIG_LABEL = {k: k for k in CONFIGS}
 
 class Encoding:
-    """x(v,j): c(v) = j, 1 <= j <= H.   g(v,j): c(v) >= j, 2 <= j <= H."""
+    """x(v,j): c(v) = j, 1 <= j <= H.   g(v,j): c(v) >= j, 2 <= j <= H.
+    vars = "order": x and g;  "direct": x only;  "compact": g only (no x, no channel)."""
     def __init__(self, g, H, cfg):
         self.G, self.H, self.cfg = g, H, cfg
         self.anchor = anchor_vertex(g) if cfg.sym else None
-        top = g.n * H + (g.n * (H - 1) if cfg.vars == "order" else 0)
+        self.gbase = 0 if cfg.vars == "compact" else g.n * H
+        top = {"order": g.n * (2 * H - 1), "direct": g.n * H, "compact": g.n * (H - 1)}[cfg.vars]
         self.pool = Pool(top)
 
     def x(self, v, j): return v * self.H + j
-    def g(self, v, j): return self.G.n * self.H + v * (self.H - 1) + j - 1
+    def g(self, v, j): return self.gbase + v * (self.H - 1) + j - 1
 
     def _ge(self, v, t):
         """Literal for c(v) >= t, or True/False when t is outside [2, H]."""
@@ -248,6 +408,17 @@ class Encoding:
     def fixed(self, sink):
         """Everything that does not depend on K."""
         n, H, x = self.G.n, self.H, self.x
+        if self.cfg.vars == "compact":
+            for v in range(n):
+                for j in range(2, H):                                # (chain)
+                    sink.add([-self.g(v, j + 1), self.g(v, j)])
+            ge = self._ge
+            for u, v, d in self.G.edges:                             # c(p) = a written as g(p,a) & -g(p,a+1)
+                for p, q in ((u, v), (v, u)):
+                    for a in range(1, H + 1):
+                        self._add(sink, (ge(p, a), False), (ge(p, a + 1), True),
+                                  (ge(q, a - d + 1), False), (ge(q, a + d), True))
+            return
         if self.cfg.vars == "order":
             for v in range(n):
                 for j in range(2, H):                                # (chain)
@@ -277,7 +448,7 @@ class Encoding:
     def delta(self, K, sink):
         """Span <= K, plus the anchor in the lower half of [1, K] (reflection)."""
         half = math.ceil(K / 2)
-        if self.cfg.vars == "order":
+        if self.cfg.vars in ("order", "compact"):
             if K + 1 <= self.H:
                 for v in range(self.G.n): sink.add([-self.g(v, K + 1)])
             if self.anchor is not None and half + 1 <= self.H:
@@ -288,7 +459,24 @@ class Encoding:
             if self.anchor is not None:
                 for j in range(half + 1, self.H + 1): sink.add([-self.x(self.anchor, j)])
 
+    def phases(self, c):
+        """Literals describing colouring c (of this encoding's graph), for Backend.hint.
+        Colours above H are clipped, so the hint is always a full assignment."""
+        out = []
+        for v in range(self.G.n):
+            cv = min(c[v], self.H)
+            if self.cfg.vars != "compact":
+                out += [self.x(v, j) if j == cv else -self.x(v, j) for j in range(1, self.H + 1)]
+            if self.cfg.vars != "direct":
+                out += [self.g(v, j) if cv >= j else -self.g(v, j) for j in range(2, self.H + 1)]
+        return out
+
     def decode(self, true_lits):
+        if self.cfg.vars == "compact":                               # c(v) = 1 + #{j : g(v,j)}
+            c, lo, hi = [1] * self.G.n, self.gbase, self.gbase + self.G.n * (self.H - 1)
+            for l in true_lits:
+                if lo < l <= hi: c[(l - lo - 1) // (self.H - 1)] += 1
+            return c
         c = [0] * self.G.n
         limit = self.G.n * self.H
         for l in true_lits:
@@ -302,6 +490,8 @@ def formula_size(g, H, cfg):
     """Closed-form (variables, clauses) before Delta_K, for H >= 2."""
     n = g.n
     pair = sum((2 * d - 1) * H - d * (d - 1) for _, _, d in g.edges)
+    if cfg.vars == "compact":
+        return n * (H - 1), n * (H - 2) + 2 * H * len(g.edges)
     if cfg.vars == "order":
         dist = pair if cfg.dist == "pairwise" else 2 * H * len(g.edges)
         return n * (2 * H - 1), n * (H - 2) + n * (3 * H - 2) + dist
@@ -312,8 +502,10 @@ def formula_size(g, H, cfg):
 # 5. Back-ends and the threshold search
 # ----------------------------------------------------------------------------
 class Backend:
-    """add(clause), solve() -> list of true literals or None, close()."""
+    """add(clause), solve() -> list of true literals or None, close(), and an optional
+    hint(literals): preferred polarities for the next solve (ignored if unsupported)."""
     def close(self): pass
+    def hint(self, lits): pass
 
 class DPLLBackend(Backend):
     def __init__(self, nvars): self.nvars, self.cl = nvars, []
@@ -329,16 +521,51 @@ class PySATBackend(Backend):
     def add(self, c): self.s.add_clause(c)
     def solve(self): return [l for l in self.s.get_model() if l > 0] if self.s.solve() else None
     def close(self): self.s.delete()
+    def hint(self, lits):
+        try: self.s.set_phases(lits)
+        except Exception: pass                                       # solver without phase support
 
-def search(g, cfg, make_backend, on_incumbent=None, on_built=None):
+def default_bounds(g):
+    """(LB, starting colouring): clique bound and iterated-greedy colouring."""
+    lb = lower_bound(g)
+    return lb, heuristic_coloring(g, lb)
+
+def weak_bounds(g):
+    """The original bounds (max weight + 1, first-fit). Used by the tests so that the
+    SAT part of the search is exercised even when the strong bounds already meet."""
+    return weight_lower_bound(g), first_fit(g)
+
+def search(g, cfg, make_backend, on_incumbent=None, on_built=None, bounds=default_bounds, preprocess=True, phases=False):
     """Descending search. Returns dict(status, span, coloring, H, LB, calls, ...).
-    status OPTIMAL means: a colouring of span B plus UNSAT at B-1, or B = LB."""
+    The starting colouring (span H) is the first incumbent, so the first SAT call
+    asks for K = H-1. With `preprocess`, low-degree vertices are removed first (peel)
+    and put back after each SAT answer. With `phases` (off by default), the solver is
+    told to prefer the incumbent colouring as its first guess (Backend.hint). In a
+    small test with CaDiCaL this was neutral to ~25% faster for 'full' but up to 2x
+    slower for 'direct-seq', so it is opt-in. status OPTIMAL means: a colouring of span B
+    plus UNSAT at B-1, or B = LB."""
     t0 = time.perf_counter()
-    H, lb = max(first_fit(g)), lower_bound(g)
-    enc = Encoding(g, H, cfg)
+    lb, col0 = bounds(g)
+    H = max(col0, default=0)
+    res = dict(H=H, LB=lb, vars=0, clauses=0, calls=0, span=H, coloring=col0, status="UNKNOWN")
+    if on_incumbent: on_incumbent(H)
+    if H <= lb:                                  # heuristic already optimal: no SAT call
+        res["status"], res["t_build"] = "OPTIMAL", time.perf_counter() - t0
+        if on_built: on_built(res)
+        return res
+    gr, keep, removed = peel(g, lb) if preprocess else (g, list(range(g.n)), [])
+    res["removed"] = len(removed)
+    if gr.n == 0:                                # every vertex fits below LB
+        c = unpeel(g, [], keep, removed)
+        res.update(span=max(c), coloring=c, status="OPTIMAL" if is_valid_coloring(g, c) and max(c) <= lb else "WRONG",
+                   t_build=time.perf_counter() - t0)
+        if on_incumbent: on_incumbent(max(c))
+        if on_built: on_built(res)
+        return res
+    enc = Encoding(gr, H, cfg)
     sink = ListSink(); enc.fixed(sink)
-    res = dict(H=H, LB=lb, vars=enc.pool.top, clauses=sink.n, calls=0, span=None, coloring=None, status="UNKNOWN")
-    backend, K = None, H
+    res.update(vars=enc.pool.top, clauses=sink.n)
+    backend, K = None, H - 1
     def load(b):
         for c in sink.clauses: b.add(c)
         return b
@@ -351,12 +578,12 @@ def search(g, cfg, make_backend, on_incumbent=None, on_built=None):
             backend = load(make_backend(enc.pool.top))
         d = ListSink(); enc.delta(K, d)
         for c in d.clauses: backend.add(c)
+        if phases: backend.hint(enc.phases([res["coloring"][v] for v in keep]))
         res["calls"] += 1
         true = backend.solve()
         if true is None:
-            if res["span"] is None: raise RuntimeError("UNSAT at the feasible upper bound: encoder bug")
             res["status"] = "OPTIMAL"; break
-        c = enc.decode(true)
+        c = unpeel(g, enc.decode(true), keep, removed)
         if not is_valid_coloring(g, c) or max(c) > K:
             res["status"] = "WRONG"; break
         res["span"], res["coloring"] = max(c), c
@@ -517,15 +744,16 @@ def cmd_verify(a):
         H = max(first_fit(g)); opt = brute_force_opt(g, H); graphs += 1
         if not (lower_bound(g) <= opt <= H): bad.append(("bounds", g.edges))
         for name, cfg in CONFIGS.items():
-            r = search(g, cfg, DPLLBackend); checks += 1
-            if r["status"] != "OPTIMAL" or r["span"] != opt or not is_valid_coloring(g, r["coloring"]):
-                bad.append((name, g.edges, opt, r["span"]))
+            for bnd, pre in ((default_bounds, True), (weak_bounds, True), (weak_bounds, False)):
+                r = search(g, cfg, DPLLBackend, bounds=bnd, preprocess=pre, phases=pre); checks += 1
+                if r["status"] != "OPTIMAL" or r["span"] != opt or not is_valid_coloring(g, r["coloring"]):
+                    bad.append((name, bnd.__name__, pre, g.edges, opt, r["span"]))
     out["bcp"]["random_graphs"] = graphs; out["bcp"]["search_runs"] = checks; out["bcp"]["search_ok"] = not bad
     # F(K) is SAT exactly when a colouring of span <= K exists, at every K, without the search
     thr = 0; thr_ok = True
     for _ in range(a.graphs // 2):
         g = random_graph(rng, nmax=5); H = max(first_fit(g)); opt = brute_force_opt(g, H)
-        for name in ("full", "pair", "direct-seq"):
+        for name in ("full", "pair", "compact", "direct-seq"):
             enc = Encoding(g, H, CONFIGS[name]); s = ListSink(); enc.fixed(s); base = s.clauses
             for K in range(1, H + 1):
                 d = ListSink(); enc.delta(K, d); thr += 1
@@ -542,7 +770,7 @@ def cmd_verify(a):
     out["bcp"]["size_cases"] = siz; out["bcp"]["size_ok"] = siz_ok
     # worked example: span 6 is optimal, span 5 is UNSAT
     res = {}
-    for name, cfg in CONFIGS.items(): res[name] = search(EXAMPLE, cfg, DPLLBackend)["span"]
+    for name, cfg in CONFIGS.items(): res[name] = search(EXAMPLE, cfg, DPLLBackend, bounds=weak_bounds)["span"]
     enc = Encoding(EXAMPLE, 8, CONFIGS["full"]); s = ListSink(); enc.fixed(s); d = ListSink(); enc.delta(5, d)
     out["bcp"]["example_spans"] = res
     out["bcp"]["example_ok"] = (set(res.values()) == {6} and brute_force_opt(EXAMPLE, 8) == 6 and
@@ -550,8 +778,9 @@ def cmd_verify(a):
     # unweighted graph: BCP = graph colouring, K4 needs 4 colours, C5 needs 3
     k4 = Graph(4, [(u, v, 1) for u, v in itertools.combinations(range(4), 2)])
     c5 = Graph(5, [(i, (i + 1) % 5, 1) for i in range(5)])
-    out["bcp"]["unit_weight_ok"] = (search(k4, CONFIGS["full"], DPLLBackend)["span"] == 4 and
-                                    search(c5, CONFIGS["full"], DPLLBackend)["span"] == 3)
+    out["bcp"]["unit_weight_ok"] = all(search(k4, CONFIGS["full"], DPLLBackend, bounds=b)["span"] == 4 and
+                                       search(c5, CONFIGS["full"], DPLLBackend, bounds=b)["span"] == 3
+                                       for b in (default_bounds, weak_bounds))
     # reader ignores node lines and self-loops, keeps the larger duplicate weight
     tmp = os.path.join(a.out, "results", "_t.col"); os.makedirs(os.path.dirname(tmp), exist_ok=True)
     open(tmp, "w").write("c x\np band 3 3\nn 1 5\ne 1 1 10\ne 1 2 6\ne 2 1 7\ne 2 3 1\n")
@@ -564,7 +793,8 @@ def cmd_verify(a):
         refs = {r["instance"]: r for r in csv.DictReader(open(ref_path))}
         for p in glob.glob(os.path.join(INST, "*", "*.col")):
             g = read_col(p); r = refs.get(g.name)
-            if r: chk += 1; chk_ok &= (str(g.n) == r["n"] and str(len(g.edges)) == r["E"])
+            if r: chk += 1; chk_ok &= (str(g.n) == r["n"] and str(len(g.edges)) == r["E"]
+                                       and lower_bound(g) <= int(r["reference_span"]))
     out["bcp"]["instances_checked"] = chk; out["bcp"]["instances_ok"] = chk_ok
     out["seconds"] = round(time.time() - t0, 1)
     ok_all &= all(out["bcp"][k] for k in ("search_ok", "threshold_ok", "size_ok", "example_ok", "unit_weight_ok", "reader_ok", "instances_ok"))
@@ -579,7 +809,7 @@ def cmd_verify(a):
 # 8. Size tables / figure for the report
 # ----------------------------------------------------------------------------
 SIZE_INSTANCES = ["GEOM20", "GEOM40", "GEOM60", "GEOM80", "GEOM100", "GEOM120", "GEOM60a", "GEOM120a", "GEOM60b", "GEOM120b"]
-SIZE_CONFIGS = ["full", "pair", "direct-pairwise", "direct-seq", "direct-binary", "direct-commander", "direct-product"]
+SIZE_CONFIGS = ["full", "compact", "pair", "direct-pairwise", "direct-seq", "direct-binary", "direct-commander", "direct-product"]
 
 def thin(x): return f"{x:,}".replace(",", "\\,")
 
@@ -588,14 +818,14 @@ def cmd_sizes(a):
     os.makedirs(os.path.join(a.out, "results"), exist_ok=True)
     rows = []
     for name in SIZE_INSTANCES:
-        g = read_col(os.path.join(INST, "GEOM", name + ".col")); H = max(first_fit(g))
+        g = read_col(os.path.join(INST, "GEOM", name + ".col")); H = max(heuristic_coloring(g, lower_bound(g)))
         for c in SIZE_CONFIGS:
             nv, nc = formula_size(g, H, CONFIGS[c])
             rows.append(dict(instance=name, n=g.n, E=len(g.edges), H=H, config=c, vars=nv, clauses=nc))
     with open(os.path.join(a.out, "results", "encoding_sizes.csv"), "w") as f:
         f.write("instance,n,E,H,config,vars,clauses\n")
         for r in rows: f.write(",".join(str(r[k]) for k in ("instance", "n", "E", "H", "config", "vars", "clauses")) + "\n")
-    short = {"full": "full", "pair": "pair", "direct-pairwise": "Pairwise", "direct-seq": "Sequential",
+    short = {"full": "full", "compact": "compact", "pair": "pair", "direct-pairwise": "Pairwise", "direct-seq": "Sequential",
              "direct-binary": "Binary", "direct-commander": "Commander", "direct-product": "Product"}
     def table(fname, key):
         L = [r"\begin{tabular}{lrrr" + "r" * len(SIZE_CONFIGS) + "}", r"\toprule",
@@ -624,7 +854,7 @@ def cmd_sizes(a):
     plt.rcParams.update({"font.size": 8, "font.family": "serif"})
     fam = ["GEOM20", "GEOM40", "GEOM60", "GEOM80", "GEOM100", "GEOM120"]
     fig, axs = plt.subplots(1, 2, figsize=(6.6, 2.7))
-    mk = dict(zip(SIZE_CONFIGS, "osv^D<>"))
+    mk = dict(zip(SIZE_CONFIGS, "osv^D<>ph"))
     for ax, key, ttl in ((axs[0], "vars", "(a) số biến"), (axs[1], "clauses", "(b) số mệnh đề")):
         for c in SIZE_CONFIGS:
             ys = [r[key] for n in fam for r in rows if r["instance"] == n and r["config"] == c]
@@ -645,6 +875,7 @@ def main(argv=None):
     p = sp.add_parser("verify"); p.add_argument("--out", default="../report"); p.add_argument("--graphs", type=int, default=200)
     p = sp.add_parser("solve"); p.add_argument("--instance", required=True); p.add_argument("--config", default="full", choices=list(CONFIGS))
     p.add_argument("--solver", default="cadical195", help="dpll (reference) or a PySAT name, e.g. glucose4")
+    p.add_argument("--phases", action="store_true", help="hint the incumbent colouring as preferred phases")
     p = sp.add_parser("dimacs"); p.add_argument("--instance", required=True); p.add_argument("--config", default="full", choices=list(CONFIGS))
     p.add_argument("--k", type=int, required=True); p.add_argument("--out", required=True)
     p = sp.add_parser("gen"); p.add_argument("--n", type=int, default=30); p.add_argument("--dist", type=int, default=2000000)
@@ -657,12 +888,12 @@ def main(argv=None):
         print(f"wrote {a.out}: n={g.n}, |E|={len(g.edges)}"); return 0
     g = read_col(a.instance)
     if a.cmd == "dimacs":
-        H = max(first_fit(g)); enc = Encoding(g, H, CONFIGS[a.config]); s = ListSink()
+        H = max(heuristic_coloring(g, lower_bound(g))); enc = Encoding(g, H, CONFIGS[a.config]); s = ListSink()
         enc.fixed(s); enc.delta(a.k, s); write_dimacs(a.out, s.clauses, enc.pool.top)
         print(f"wrote {a.out}: {enc.pool.top} vars, {s.n} clauses"); return 0
     t = time.time()
     make = DPLLBackend if a.solver == "dpll" else (lambda nv: PySATBackend(a.solver))
-    r = search(g, CONFIGS[a.config], make, on_incumbent=lambda b: print(f"  span {b}  ({time.time()-t:.2f}s)"))
+    r = search(g, CONFIGS[a.config], make, on_incumbent=lambda b: print(f"  span {b}  ({time.time()-t:.2f}s)"), phases=a.phases)
     print(f"{r['status']} span={r['span']} H={r['H']} LB={r['LB']} calls={r['calls']} vars={r['vars']} clauses={r['clauses']} {time.time()-t:.2f}s")
     if r["coloring"]: print(" ".join(map(str, r["coloring"])))
     return 0
