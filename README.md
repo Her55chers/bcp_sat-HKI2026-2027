@@ -53,5 +53,3 @@ python run_experiments.py run --member 2 --jobs 4
 
 Chữ đỏ trong PDF là chỗ chưa có dữ liệu. Sau khi chạy thực nghiệm, hãy đọc lại các đoạn văn tự sinh trong `report/results/auto_text.tex` và sửa cho tự nhiên.
 
-## Nguồn dữ liệu
-GEOM do M. Trick tạo. Các file `.col` của GEOM và MS-CAP và giá trị tham khảo lấy từ [bcp-ese](https://github.com/bcp-ese/bcp-ese) của Nguyen, Kieu và To (2026); hãy trích dẫn nguồn này khi dùng lại.
