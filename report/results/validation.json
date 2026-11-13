@@ -38,17 +38,18 @@
  },
  "bcp": {
   "random_graphs": 200,
-  "search_runs": 1800,
+  "search_runs": 6000,
   "search_ok": true,
-  "threshold_cases": 1569,
+  "threshold_cases": 2092,
   "threshold_ok": true,
-  "size_cases": 900,
+  "size_cases": 1000,
   "size_ok": true,
   "example_spans": {
    "full": 6,
    "no-sym": 6,
    "pair": 6,
    "non-inc": 6,
+   "compact": 6,
    "direct-pairwise": 6,
    "direct-seq": 6,
    "direct-binary": 6,
@@ -61,5 +62,5 @@
   "instances_checked": 53,
   "instances_ok": true
  },
- "seconds": 8.9
+ "seconds": 34.2
 }
