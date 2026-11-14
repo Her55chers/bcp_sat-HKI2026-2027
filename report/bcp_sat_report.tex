@@ -79,13 +79,13 @@
 \title [mode = title]{Giải bài toán Bandwidth Coloring bằng SAT: so sánh các cách mã hóa và các solver}
 
 \author{\AuthorOne, MSV - \IDOne}
-\credit{Methodology, Software (encoder SAT, kiểm thử), Validation, Investigation (thí nghiệm mã hóa và SAT solver), Writing -- original draft}
+\credit{Methodology, Software (encoder SAT, kiểm thử), Validation, Investigation (thí nghiệm A: các cấu hình mã hóa), Writing -- original draft}
 
 \author{\AuthorTwo, MSV - \IDTwo}
-\credit{Conceptualization, Software (mô hình ILP và CP, tổng hợp kết quả), Data curation, Investigation (thí nghiệm ILP và CP), Writing -- original draft}
+\credit{Conceptualization, Software (mô hình ILP và CP, tổng hợp kết quả), Data curation, Investigation (thí nghiệm B: các SAT solver; thí nghiệm C: ILP và CP), Writing -- original draft}
 
 \begin{abstract}
-Bài toán tô màu băng thông (Bandwidth Coloring Problem, BCP) gán cho mỗi đỉnh của một đồ thị có trọng số cạnh một màu nguyên sao cho hai đỉnh kề nhau có màu cách nhau ít nhất bằng trọng số của cạnh, và cực tiểu màu lớn nhất. Đây là bài toán NP-khó, tổng quát hóa bài toán tô màu đồ thị. Trong bài tập lớn này, ta xây dựng một bộ giải BCP dựa trên SAT: với mỗi ngưỡng $K$, bài toán được đưa về một công thức CNF, rồi ngưỡng được giảm dần cho đến khi solver trả về UNSAT, nhờ đó giá trị tìm được là tối ưu đã chứng nhận. Ta cài đặt mã hóa kết hợp biến exact và biến order, trong đó mỗi khoảng màu bị cấm chỉ cần một mệnh đề, và so sánh với mã hóa trực tiếp dùng năm cách mã hóa AMO: pairwise, sequential counter, binary, commander và product. Ta đưa ra công thức tính số biến và số mệnh đề và kiểm tra lại bằng chương trình. Trên đề GEOM120b, mã hóa kết hợp có 390.726 mệnh đề, trong khi mã hóa trực tiếp cần từ 1.602.369 đến 2.321.529 mệnh đề. Công thức được giải bằng các SAT solver CaDiCaL, Glucose, CryptoMiniSat, Kissat và được so sánh với Gurobi, CPLEX MIP, CPLEX CP và OR-Tools CP-SAT. \AutoAbstract
+Bài toán tô màu băng thông (Bandwidth Coloring Problem, BCP) gán cho mỗi đỉnh của một đồ thị có trọng số cạnh một màu nguyên sao cho hai đỉnh kề nhau có màu cách nhau ít nhất bằng trọng số của cạnh, và cực tiểu màu lớn nhất. Đây là bài toán NP-khó, tổng quát hóa bài toán tô màu đồ thị. Trong bài tập lớn này, ta xây dựng một bộ giải BCP dựa trên SAT: với mỗi ngưỡng $K$, bài toán được đưa về một công thức CNF, rồi ngưỡng được giảm dần cho đến khi solver trả về UNSAT, nhờ đó giá trị tìm được là tối ưu đã chứng nhận. Ta cài đặt mã hóa kết hợp biến exact và biến order, trong đó mỗi khoảng màu bị cấm chỉ cần một mệnh đề, và so sánh với mã hóa trực tiếp dùng năm cách mã hóa AMO: pairwise, sequential counter, binary, commander và product. Ta đưa ra công thức tính số biến và số mệnh đề và kiểm tra lại bằng chương trình. Trên đề GEOM120b, mã hóa kết hợp có 331.872 mệnh đề (297.552 nếu bỏ biến exact), trong khi mã hóa trực tiếp cần từ 1.354.422 đến 1.867.782 mệnh đề. Công thức được giải bằng các SAT solver CaDiCaL, Glucose, CryptoMiniSat, Kissat và được so sánh với Gurobi, CPLEX MIP, CPLEX CP và OR-Tools CP-SAT. \AutoAbstract
 \end{abstract}
 
 \begin{keywords}

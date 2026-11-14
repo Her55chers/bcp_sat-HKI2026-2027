@@ -1,4 +1,24 @@
 %% Phan cua Thanh vien 2
+\subsection{So sánh các SAT solver}\label{sec:exp-solvers}
+
+Thí nghiệm này (thí nghiệm B) dùng cấu hình tốt nhất tìm được ở Bảng~\ref{tab:res-cfg}. Bảng~\ref{tab:res-solvers} so sánh các SAT solver với hai cấu hình: cấu hình tốt nhất đó và \texttt{direct-pairwise}, để xem cấu hình tốt cho \FixedSolver{} có tốt cho các solver khác hay không. Các lần chạy của \FixedSolver{} lấy lại từ thí nghiệm A. Hình~\ref{fig:cactus} vẽ phân bố thời gian với cấu hình tốt nhất. \AutoSolvers{} Lưu ý rằng Kissat, và CryptoMiniSat nếu gọi bằng file chạy riêng, được chạy lại từ đầu ở mỗi ngưỡng nên không dùng lại được những gì đã học.
+
+\begin{table}[width=\linewidth,pos=t]
+\caption{Các SAT solver với cấu hình tốt nhất (\BestConfig) và với \texttt{direct-pairwise}: số đề chứng nhận tối ưu / tổng số đề (PAR-2, giây).}
+\label{tab:res-solvers}
+\centering\small
+\input{tables/res_solvers.tex}
+\end{table}
+
+\begin{figure}[pos=t]
+\centering
+\IfFileExists{figures/cactus.pdf}{%
+  \includegraphics[width=0.75\linewidth]{figures/cactus.pdf}}{%
+  \fbox{\parbox[c][4.2cm][c]{0.7\linewidth}{\centering\textcolor{red}{[Biểu đồ cactus: tự sinh khi chạy \texttt{run\_experiments.py run}, lưu tại \texttt{figures/cactus.pdf}.]}}}}
+\caption{Biểu đồ cactus của các solver trên toàn bộ dữ liệu. Đường càng thấp và càng dài về bên phải thì solver càng tốt.}
+\label{fig:cactus}
+\end{figure}
+
 \subsection{So sánh với ILP và CP}\label{sec:exp-compare}
 
 Bảng~\ref{tab:res-base} so sánh SAT với Gurobi, CPLEX MIP, CPLEX CP và OR-Tools CP-SAT trên cùng máy, cùng bộ đề và cùng giới hạn thời gian. \AutoCompare
@@ -16,4 +36,4 @@ Bảng~\ref{tab:res-base} so sánh SAT với Gurobi, CPLEX MIP, CPLEX CP và OR-
 
 \subsection{Hạn chế}\label{sec:threats}
 
-SAT solver CDCL khá nhạy với thứ tự mệnh đề và biến, mà mỗi đề chỉ chạy một lần, nên kết quả trên từng đề có thể bị nhiễu và các so sánh ở đây là số liệu quan sát, không phải khác biệt có ý nghĩa thống kê. Cận $H$ từ first-fit và cận $LB$ đều đơn giản; cận tốt hơn sẽ thu nhỏ công thức và có thể đổi thứ hạng. Encoder viết bằng Python nên thời gian sinh công thức đáng kể trên đề lớn. Các solver đều dùng tham số mặc định. Các mô hình ILP và CP ở Mục~\ref{sec:ilp} là mô hình cơ bản, nên kết quả của chúng không đại diện cho mọi mô hình ILP, CP có thể có.
+SAT solver CDCL khá nhạy với thứ tự mệnh đề và biến, mà mỗi đề chỉ chạy một lần, nên kết quả trên từng đề có thể bị nhiễu và các so sánh ở đây là số liệu quan sát, không phải khác biệt có ý nghĩa thống kê. Cận $LB$ (clique) và $H$ (iterated greedy) chỉ thu nhỏ công thức và bớt số lần gọi SAT; chúng không làm nhẹ lần chứng minh UNSAT cuối cùng, nên trên các đề khó thời gian gần như không đổi. Thí nghiệm A và thí nghiệm B, C có thể chạy trên hai máy khác nhau (xem Mục~\ref{sec:setup}). Encoder viết bằng Python nên thời gian sinh công thức đáng kể trên đề lớn. Các solver đều dùng tham số mặc định. Các mô hình ILP và CP ở Mục~\ref{sec:ilp} là mô hình cơ bản, nên kết quả của chúng không đại diện cho mọi mô hình ILP, CP có thể có.

@@ -64,22 +64,3 @@ Bảng~\ref{tab:res-cfg} so sánh các cấu hình mã hóa khi dùng cùng mộ
 \input{tables/res_cfg.tex}
 \end{table}
 
-\subsection{So sánh các SAT solver}\label{sec:exp-solvers}
-
-Bảng~\ref{tab:res-solvers} so sánh các SAT solver với hai cấu hình: cấu hình tốt nhất ở Bảng~\ref{tab:res-cfg} và \texttt{direct-pairwise}, để xem cấu hình tốt cho \FixedSolver{} có tốt cho các solver khác hay không. Hình~\ref{fig:cactus} vẽ phân bố thời gian với cấu hình tốt nhất. \AutoSolvers{} Lưu ý rằng Kissat, và CryptoMiniSat nếu gọi bằng file chạy riêng, được chạy lại từ đầu ở mỗi ngưỡng nên không dùng lại được những gì đã học.
-
-\begin{table}[width=\linewidth,pos=t]
-\caption{Các SAT solver với cấu hình tốt nhất (\BestConfig) và với \texttt{direct-pairwise}: số đề chứng nhận tối ưu / tổng số đề (PAR-2, giây).}
-\label{tab:res-solvers}
-\centering\small
-\input{tables/res_solvers.tex}
-\end{table}
-
-\begin{figure}[pos=t]
-\centering
-\IfFileExists{figures/cactus.pdf}{%
-  \includegraphics[width=0.75\linewidth]{figures/cactus.pdf}}{%
-  \fbox{\parbox[c][4.2cm][c]{0.7\linewidth}{\centering\textcolor{red}{[Biểu đồ cactus: tự sinh khi chạy \texttt{run\_experiments.py run}, lưu tại \texttt{figures/cactus.pdf}.]}}}}
-\caption{Biểu đồ cactus của các solver trên toàn bộ dữ liệu. Đường càng thấp và càng dài về bên phải thì solver càng tốt.}
-\label{fig:cactus}
-\end{figure}
