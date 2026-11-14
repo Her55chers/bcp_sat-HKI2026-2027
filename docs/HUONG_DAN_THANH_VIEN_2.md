@@ -12,7 +12,7 @@ Khối lượng: B = 4 solver × 2 cấu hình × N đề, trừ 2N lần đã c
 | Profile (do Thành viên 1 chọn) | Số lần chạy | Thời gian tối đa (mọi lần đều hết giờ) |
 |---|---|---|
 | `quick` (60 giây/lần, 33 đề GEOM) | 330 | 5,5 giờ; khoảng 1,4 giờ với `--jobs 4` |
-| `full` (900 giây/lần, 53 đề GEOM + MS-CAP) | 530 | khoảng 5,5 ngày; khoảng 1,4 ngày với `--jobs 4` |
+| `full` (1500 giây/lần, 53 đề GEOM + MS-CAP) | 530 | khoảng 9,2 ngày; khoảng 2,3 ngày với `--jobs 4` |
 
 Solver nào không cài được sẽ được bỏ qua và ghi "không chạy" trong báo cáo, nên số lần chạy thực tế có thể ít hơn.
 

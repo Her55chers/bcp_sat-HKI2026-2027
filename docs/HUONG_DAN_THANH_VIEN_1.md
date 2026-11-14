@@ -7,7 +7,7 @@ Khối lượng: 10 cấu hình × N đề = **10N lần chạy**.
 | Profile | Số lần chạy | Thời gian tối đa (mọi lần đều hết giờ) |
 |---|---|---|
 | `quick` (60 giây/lần, 33 đề GEOM) | 330 | 5,5 giờ; khoảng 1,4 giờ với `--jobs 4` |
-| `full` (900 giây/lần, 53 đề GEOM + MS-CAP) | 530 | khoảng 5,5 ngày; khoảng 1,4 ngày với `--jobs 4` |
+| `full` (1500 giây/lần, 53 đề GEOM + MS-CAP) | 530 | khoảng 9,2 ngày; khoảng 2,3 ngày với `--jobs 4` |
 
 Thực tế ngắn hơn nhiều, vì phần lớn các lần chạy SAT kết thúc sớm.
 
@@ -113,7 +113,7 @@ python run_experiments.py run --member 1 --profile full --jobs 4
 ```
 
 - `--jobs 4` chạy song song 4 tiến trình. Nên đặt nhỏ hơn số nhân CPU, và đừng dùng máy cho việc nặng khác trong lúc chạy, vì thời gian đo sẽ bị nhiễu.
-- Có thể chỉ chạy một số bộ, ví dụ `--sets GEOM-S GEOM-L`, hoặc đổi giới hạn bằng `--time-limit 300` (tối đa 900 giây).
+- Có thể chỉ chạy một số bộ, ví dụ `--sets GEOM-S GEOM-L`, hoặc đổi giới hạn bằng `--time-limit 300` (tối đa 1500 giây).
 - **Bị dừng giữa chừng** (tắt máy, Ctrl+C): chạy lại đúng lệnh cũ, các lần đã xong sẽ được bỏ qua.
 - Máy tính phải **không ngủ** trong lúc chạy `full`.
 
@@ -150,6 +150,6 @@ Bạn chỉ sửa các file trong `report/parts/member1/`. Sau khi chạy, đọ
 |---|---|
 | `ModuleNotFoundError: No module named 'pysat'` | Chưa kích hoạt môi trường ảo, hoặc chưa chạy `pip install -r requirements.txt`. |
 | `UnicodeEncodeError: 'charmap' codec ...` khi in tiếng Việt (Windows) | Chạy `$env:PYTHONIOENCODING="utf-8"` trong PowerShell (hoặc `set PYTHONIOENCODING=utf-8` trong cmd) rồi chạy lại lệnh. |
-| `--time-limit phải trong khoảng (0, 900] giây` | Giới hạn mỗi lần chạy tối đa là 900 giây. |
+| `--time-limit phải trong khoảng (0, 1500] giây` | Giới hạn mỗi lần chạy tối đa là 1500 giây. |
 | `Không có SAT solver nào chạy được` | Cài lại `python-sat`: `pip install --force-reinstall python-sat`. |
 | `verify` báo `SOME TESTS FAILED` | Không chạy thực nghiệm; báo lại cho nhóm kèm output của lệnh. |

@@ -11,7 +11,7 @@ Lenh:
   Thanh vien 1 (thi nghiem A: cac cau hinh ma hoa), chay truoc:
   python run_experiments.py run --member 1 --profile smoke   # chay thu rat nhanh
   python run_experiments.py run --member 1 --profile quick   # 60 giay/lan, toan bo GEOM
-  python run_experiments.py run --member 1 --profile full    # 900 giay/lan, GEOM + MS-CAP
+  python run_experiments.py run --member 1 --profile full    # 1500 giay/lan, GEOM + MS-CAP
   python run_experiments.py run --member 1 --profile quick --sets GEOM-L --jobs 4
 
   Thanh vien 2 (thi nghiem B: cac SAT solver; thi nghiem C: ILP va CP), dung cung bo de
@@ -19,7 +19,7 @@ Lenh:
   python run_experiments.py run --member 2 --jobs 4
 
 Khoi luong (N = so de): A = 10N lan chay; B + C = 6N + 4N = 10N lan chay.
-Gioi han thoi gian moi lan chay toi da MAX_TIME_LIMIT = 900 giay.
+Gioi han thoi gian moi lan chay toi da MAX_TIME_LIMIT = 1500 giay.
 
   python run_experiments.py report      # chi tao lai bang/hinh/doan van tu ket qua da co
   python run_experiments.py reset       # tra bao cao ve trang thai chu do
@@ -53,7 +53,7 @@ EXACT = ["gurobi", "cplex-mip", "cplex-cp", "cpsat"]
 EXACT_LABEL = {"gurobi": "Gurobi", "cplex-mip": "CPLEX MIP", "cplex-cp": "CPLEX CP", "cpsat": "OR-Tools CP-SAT"}
 SET_ORDER = ["GEOM-S", "GEOM-M", "GEOM-L", "MS-CAP"]
 
-MAX_TIME_LIMIT = 900
+MAX_TIME_LIMIT = 1500
 PROFILES = {
     "smoke": dict(time_limit=5, sets=["GEOM-S"]),
     "quick": dict(time_limit=60, sets=["GEOM-S", "GEOM-M", "GEOM-L"]),
