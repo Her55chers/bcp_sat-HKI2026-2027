@@ -95,7 +95,7 @@ Không có giấy phép thì `gurobipy` chạy ở chế độ giới hạn kíc
 ```bash
 pip install docplex cplex
 ```
-Gói `cplex` trên pip là bản Community Edition, giới hạn khoảng 1000 biến và 1000 ràng buộc. Muốn chạy đề lớn, hoặc nếu `check` báo CPLEX CP không chạy, hãy cài **IBM ILOG CPLEX Optimization Studio** bản đầy đủ (miễn phí cho sinh viên qua IBM Academic Initiative).
+Gói `cplex` trên pip là bản Community Edition, giới hạn khoảng 1000 biến và 1000 ràng buộc. Gói này có kèm file chạy CP Optimizer (`cpoptimizer`), đặt cạnh `python` trong môi trường ảo (`Scripts/` trên Windows, `bin/` trên Linux/macOS); chương trình tự tìm nó ở đó, nên CPLEX CP chạy được mà không cần cài thêm. Với bản community, trên 33 đề GEOM, mô hình MIP vượt giới hạn ở 14 đề và mô hình CP vượt ở 6 đề (đều thuộc GEOM-M và GEOM-L). Muốn chạy các đề này, hãy cài **IBM ILOG CPLEX Optimization Studio** bản đầy đủ (miễn phí cho sinh viên qua IBM Academic Initiative).
 
 ## 4. Kiểm tra cài đặt
 

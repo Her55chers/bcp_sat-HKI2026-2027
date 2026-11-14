@@ -114,16 +114,28 @@ def solve_cplex_mip(G, T):
     opt = bool(sol) and "optimal" in str(m.solve_details.status).lower()
     return _finish(G, ctx, col, opt, t1, t2, g.n + len(g.edges) + 1, g.n + 2 * len(g.edges))
 
+def _cpoptimizer():
+    """Duong dan file chay CP Optimizer. Goi `cplex` tren pip dat no canh python
+    (Scripts/ tren Windows, bin/ tren Linux, macOS), nen tim o do neu khong co trong PATH."""
+    import os, shutil, sys
+    exe = shutil.which("cpoptimizer")
+    if exe: return exe
+    for name in ("cpoptimizer.exe", "cpoptimizer"):
+        p = os.path.join(os.path.dirname(sys.executable), name)
+        if os.path.isfile(p): return p
+    return None
+
 def solve_cplex_cp(G, T):
     """Mo hinh CP qua docplex.cp (can CP Optimizer), 1 luong."""
     from docplex.cp.model import CpoModel
+    from docplex.cp import modeler as mdl          # abs() cua Python khong nhan bieu thuc CPO
     done, ctx = _prepare(G)
     if done: return done
     t0, g, col0, H, lb = ctx[:5]
     m = CpoModel(); c = [m.integer_var(1, H) for _ in range(g.n)]; k = m.integer_var(lb, H)
     for v in range(g.n): m.add(c[v] <= k)
-    for u, v, d in g.edges: m.add(abs(c[u] - c[v]) >= d)
-    m.add(m.minimize(k))
+    for u, v, d in g.edges: m.add(mdl.abs(c[u] - c[v]) >= d)
+    m.add(mdl.minimize(k))
     try:
         from docplex.cp.solution import CpoModelSolution
         sp = CpoModelSolution()
@@ -132,7 +144,10 @@ def solve_cplex_cp(G, T):
     except Exception:
         pass
     t1 = time.perf_counter()
-    sol = m.solve(TimeLimit=max(1.0, T - (t1 - t0)), Workers=1, LogVerbosity="Quiet"); t2 = time.perf_counter()
+    kw = {}
+    exe = _cpoptimizer()
+    if exe: kw["execfile"] = exe
+    sol = m.solve(TimeLimit=max(1.0, T - (t1 - t0)), Workers=1, LogVerbosity="Quiet", **kw); t2 = time.perf_counter()
     col = [int(sol[x]) for x in c] if sol and sol.is_solution() else col0
     opt = bool(sol) and sol.is_solution() and str(sol.get_solve_status()).lower() == "optimal"
     return _finish(G, ctx, col, opt, t1, t2, g.n + 1, g.n + len(g.edges))
