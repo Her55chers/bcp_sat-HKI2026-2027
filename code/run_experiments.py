@@ -8,14 +8,18 @@ Lenh:
   python run_experiments.py info --member 1 --name "Nguyen Van A" --student-id 2402xxxx --email x@vnu.edu.vn --github https://github.com/u/bcp-sat
   python run_experiments.py info --member 2 --name "Tran Thi B" --student-id 2402yyyy --email y@vnu.edu.vn
 
-  Thanh vien 1 (ma hoa va SAT solver), chay truoc:
+  Thanh vien 1 (thi nghiem A: cac cau hinh ma hoa), chay truoc:
   python run_experiments.py run --member 1 --profile smoke   # chay thu rat nhanh
   python run_experiments.py run --member 1 --profile quick   # 60 giay/lan, toan bo GEOM
-  python run_experiments.py run --member 1 --profile full    # 3600 giay/lan, GEOM + MS-CAP
+  python run_experiments.py run --member 1 --profile full    # 900 giay/lan, GEOM + MS-CAP
   python run_experiments.py run --member 1 --profile quick --sets GEOM-L --jobs 4
 
-  Thanh vien 2 (ILP va CP), dung cung bo de va gioi han thoi gian cua Thanh vien 1:
+  Thanh vien 2 (thi nghiem B: cac SAT solver; thi nghiem C: ILP va CP), dung cung bo de
+  va gioi han thoi gian cua Thanh vien 1:
   python run_experiments.py run --member 2 --jobs 4
+
+Khoi luong (N = so de): A = 10N lan chay; B + C = 6N + 4N = 10N lan chay.
+Gioi han thoi gian moi lan chay toi da MAX_TIME_LIMIT = 900 giay.
 
   python run_experiments.py report      # chi tao lai bang/hinh/doan van tu ket qua da co
   python run_experiments.py reset       # tra bao cao ve trang thai chu do
@@ -49,10 +53,11 @@ EXACT = ["gurobi", "cplex-mip", "cplex-cp", "cpsat"]
 EXACT_LABEL = {"gurobi": "Gurobi", "cplex-mip": "CPLEX MIP", "cplex-cp": "CPLEX CP", "cpsat": "OR-Tools CP-SAT"}
 SET_ORDER = ["GEOM-S", "GEOM-M", "GEOM-L", "MS-CAP"]
 
+MAX_TIME_LIMIT = 900
 PROFILES = {
     "smoke": dict(time_limit=5, sets=["GEOM-S"]),
     "quick": dict(time_limit=60, sets=["GEOM-S", "GEOM-M", "GEOM-L"]),
-    "full":  dict(time_limit=3600, sets=SET_ORDER),
+    "full":  dict(time_limit=MAX_TIME_LIMIT, sets=SET_ORDER),
 }
 
 # =============================================================================
@@ -181,8 +186,8 @@ def load_runs():
         r["span"] = int(r["span"]) if r["span"] else None
     return rows
 
-def append_run(row):
-    path = RUNS[1 if row["method"].startswith("sat:") else 2]
+def append_run(row, member):
+    path = RUNS[member]
     with _lock:
         new = not os.path.exists(path)
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -238,7 +243,7 @@ def available_sat(paths, verbose=True):
 def available_exact(paths, verbose=True):
     return _available([(m, m) for m in EXACT], EXACT_LABEL, paths, verbose)
 
-def run_batch(jobs, T, njobs, paths, done):
+def run_batch(jobs, T, njobs, paths, done, member):
     rel = lambda i: os.path.relpath(i, ROOT).replace("\\", "/")
     todo = [(s, i, m) for (s, i, m) in jobs if (rel(i), m, float(T)) not in done]
     print(f"  {len(jobs)} lần chạy, {len(jobs)-len(todo)} đã có kết quả, còn {len(todo)}")
@@ -247,7 +252,7 @@ def run_batch(jobs, T, njobs, paths, done):
         s, i, m = job
         r = run_one(m, i, T, paths)
         r.update(set=s, instance=os.path.relpath(i, ROOT).replace("\\", "/"), method=m, time_limit=T)
-        append_run(r); done.add((r["instance"], m, float(T)))
+        append_run(r, member); done.add((r["instance"], m, float(T)))
         with _lock:
             cnt[0] += 1
             print(f"  [{cnt[0]}/{len(todo)}] {s:7s} {os.path.basename(i):16s} {m:30s} {r['status']:5s} span={str(r.get('span','')):>4s} {r.get('t_total',0):8.2f}s")
@@ -285,8 +290,9 @@ def cmd_run(a):
     return run_member1(a) if a.member == 1 else run_member2(a)
 
 def run_member1(a):
-    """Thanh vien 1: cac cau hinh ma hoa va cac SAT solver."""
+    """Thanh vien 1: thi nghiem A, cac cau hinh ma hoa voi mot SAT solver co dinh."""
     prof = PROFILES[a.profile]; T = float(a.time_limit or prof["time_limit"])
+    if not 0 < T <= MAX_TIME_LIMIT: sys.exit(f"--time-limit phải trong khoảng (0, {MAX_TIME_LIMIT}] giây.")
     all_sets = instance_sets()
     names = a.sets or prof["sets"]
     unknown = [s for s in names if s not in all_sets]
@@ -300,39 +306,45 @@ def run_member1(a):
     done = {(r["instance"], r["method"], r["time_limit"]) for r in load_runs()}
     fixed = sat_ok[0]
     print(f"3) Thí nghiệm A: {len(CFGS)} cấu hình mã hóa với {SAT_LABEL[fixed]}")
-    run_batch([(s, i, f"sat:{fixed}:{c}") for s in sets for c in CFGS for i in sets[s]], T, a.jobs, paths, done)
+    run_batch([(s, i, f"sat:{fixed}:{c}") for s in sets for c in CFGS for i in sets[s]], T, a.jobs, paths, done, 1)
     rows = load_runs()
     best_cfg = max(CFGS, key=lambda c: key_total(rows, f"sat:{fixed}:{c}", list(sets), T))
     print(f"   -> cấu hình tốt nhất: {best_cfg}")
-    print(f"4) Thí nghiệm B: các SAT solver {sat_ok} với {best_cfg} và {SIMPLE_CFG}")
-    cfgs = [best_cfg] + ([SIMPLE_CFG] if best_cfg != SIMPLE_CFG else [])
-    run_batch([(s, i, f"sat:{x}:{c}") for c in cfgs for x in sat_ok for s in sets for i in sets[s]], T, a.jobs, paths, done)
-    rows = load_runs()
-    best_sat = max(sat_ok, key=lambda x: key_total(rows, f"sat:{x}:{best_cfg}", list(sets), T))
-    print(f"   -> SAT solver tốt nhất: {best_sat}")
     meta = dict(profile=a.profile, time_limit=T, sets={k: len(v) for k, v in sets.items()}, fixed=fixed, best_cfg=best_cfg,
-                best_sat=best_sat, sat_ok=sat_ok, jobs=a.jobs, cms=a.cms, kissat=a.kissat, machine=machine_info())
+                jobs=a.jobs, machine=machine_info())
     os.makedirs(os.path.dirname(META[1]), exist_ok=True)
     json.dump(meta, open(META[1], "w", encoding="utf-8"), indent=1, ensure_ascii=False)
-    print("5) Tạo bảng, hình và đoạn văn cho báo cáo ...")
+    print("4) Tạo bảng, hình và đoạn văn cho báo cáo ...")
     cmd_report(a)
     print("Xong phần Thành viên 1. Gửi report/results/runs_member1.csv và meta_member1.json cho Thành viên 2.")
 
 def run_member2(a):
-    """Thanh vien 2: ILP va CP, cung bo de va gioi han thoi gian voi Thanh vien 1."""
+    """Thanh vien 2: thi nghiem B (cac SAT solver voi cau hinh tot nhat cua A va
+    direct-pairwise) va thi nghiem C (ILP, CP), cung bo de va gioi han thoi gian voi
+    Thanh vien 1. Cac lan chay cua solver co dinh trong B da co tu A nen duoc bo qua."""
     if not os.path.exists(META[1]):
         sys.exit("Chưa có kết quả của Thành viên 1 (report/results/meta_member1.json). Thành viên 2 cần file này để dùng đúng bộ đề và giới hạn thời gian.")
     m1 = json.load(open(META[1], encoding="utf-8")); T = float(m1["time_limit"])
     all_sets = instance_sets(); sets = {s: all_sets[s] for s in m1["sets"]}
-    print(f"1) Dùng cấu hình của Thành viên 1: các bộ {list(sets)}, giới hạn {T:g} giây")
-    print("2) Kiểm tra solver ILP và CP ...")
+    fixed, best_cfg = m1["fixed"], m1["best_cfg"]; paths = {"cms": a.cms, "kissat": a.kissat}
+    print(f"1) Dùng cấu hình của Thành viên 1: các bộ {list(sets)}, giới hạn {T:g} giây, cấu hình tốt nhất {best_cfg}")
+    print("2) Kiểm tra SAT solver, ILP và CP ...")
+    sat_ok = available_sat(paths)
+    if fixed not in sat_ok: sys.exit(f"Máy này không chạy được {SAT_LABEL[fixed]} (solver cố định của Thành viên 1). Hãy cài python-sat.")
     exact_ok = available_exact({})
     if not exact_ok: sys.exit("Không có solver ILP hay CP nào chạy được, chưa thể hoàn thành phần Thành viên 2. Hãy cài ortools, gurobipy hoặc docplex.")
     done = {(r["instance"], r["method"], r["time_limit"]) for r in load_runs()}
-    print(f"3) Thí nghiệm C: {[EXACT_LABEL[m] for m in exact_ok]}")
-    run_batch([(s, i, m) for m in exact_ok for s in sets for i in sets[s]], T, a.jobs, {}, done)
-    json.dump(dict(time_limit=T, exact_ok=exact_ok, jobs=a.jobs, machine=machine_info()), open(META[2], "w", encoding="utf-8"), indent=1, ensure_ascii=False)
-    print("4) Tạo bảng, hình và đoạn văn cho báo cáo ...")
+    cfgs = [best_cfg] + ([SIMPLE_CFG] if best_cfg != SIMPLE_CFG else [])
+    print(f"3) Thí nghiệm B: các SAT solver {sat_ok} với {' và '.join(cfgs)}")
+    run_batch([(s, i, f"sat:{x}:{c}") for c in cfgs for x in sat_ok for s in sets for i in sets[s]], T, a.jobs, paths, done, 2)
+    rows = load_runs()
+    best_sat = max(sat_ok, key=lambda x: key_total(rows, f"sat:{x}:{best_cfg}", list(sets), T))
+    print(f"   -> SAT solver tốt nhất: {best_sat}")
+    print(f"4) Thí nghiệm C: {[EXACT_LABEL[m] for m in exact_ok]}")
+    run_batch([(s, i, m) for m in exact_ok for s in sets for i in sets[s]], T, a.jobs, {}, done, 2)
+    json.dump(dict(time_limit=T, best_sat=best_sat, sat_ok=sat_ok, exact_ok=exact_ok, jobs=a.jobs, cms=a.cms, kissat=a.kissat,
+                   machine=machine_info()), open(META[2], "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+    print("5) Tạo bảng, hình và đoạn văn cho báo cáo ...")
     cmd_report(a)
     print("Xong phần Thành viên 2.")
 
@@ -397,17 +409,19 @@ def solver_versions(meta):
     v["cplex-cp"] = v["cplex-mip"]
     return v
 
-def solvers_table(ver=None, sat_ok=(), exact_ok=()):
+def solvers_table(ver=None, sat_ok=(), exact_ok=(), fixed=None):
+    """sat_ok / exact_ok = None: Thanh vien 2 chua chay, de o TODO (tru solver co dinh cua A)."""
     td = r"\TODO{\,}"
     def vc(k, ok): return (tex_escape(ver.get(k) or "--") if ok else "không chạy") if ver is not None else td
+    def vs(k): return (vc(k, True) if k == fixed else td) if sat_ok is None else vc(k, k in sat_ok)
     def vx(k): return td if exact_ok is None else vc(k, k in exact_ok)
     cms_how = r"\texttt{pycryptosat} hoặc file chạy \texttt{cryptominisat5}"
     return "\n".join([
         r"\begin{tabular}{lll}", r"\toprule", r"Solver & Cách gọi & Phiên bản\\", r"\midrule",
-        r"CaDiCaL & PySAT~\citep{ignatiev2018} (\texttt{cadical195}), tăng dần & " + vc("cadical195", "cadical195" in sat_ok) + r"\\",
-        r"Glucose & PySAT~\citep{ignatiev2018} (\texttt{glucose4}), tăng dần & " + vc("glucose4", "glucose4" in sat_ok) + r"\\",
-        r"CryptoMiniSat & " + cms_how + " & " + vc("cms", "cms" in sat_ok) + r"\\",
-        r"Kissat & file chạy, DIMACS, không tăng dần & " + vc("kissat", "kissat" in sat_ok) + r"\\",
+        r"CaDiCaL & PySAT~\citep{ignatiev2018} (\texttt{cadical195}), tăng dần & " + vs("cadical195") + r"\\",
+        r"Glucose & PySAT~\citep{ignatiev2018} (\texttt{glucose4}), tăng dần & " + vs("glucose4") + r"\\",
+        r"CryptoMiniSat & " + cms_how + " & " + vs("cms") + r"\\",
+        r"Kissat & file chạy, DIMACS, không tăng dần & " + vs("kissat") + r"\\",
         r"\midrule",
         r"Gurobi~\citep{gurobi} & \texttt{gurobipy}, mô hình ILP & " + vx("gurobi") + r"\\",
         r"CPLEX MIP~\citep{cplex} & \texttt{docplex.mp}, mô hình ILP & " + vx("cplex-mip") + r"\\",
@@ -432,12 +446,16 @@ def cmd_report(a=None):
     if not rows or not os.path.exists(META[1]):
         sys.exit("Chưa có kết quả của Thành viên 1. Hãy chạy: python run_experiments.py run --member 1 --profile quick")
     meta = json.load(open(META[1], encoding="utf-8")); T = float(meta["time_limit"])
-    has_m2 = False
+    # Thi nghiem B va C thuoc Thanh vien 2; khi chua co, bang B chi co solver co dinh cua A
+    has_m2, m2 = False, {}
     if os.path.exists(META[2]):
         m2 = json.load(open(META[2], encoding="utf-8"))
-        if float(m2["time_limit"]) == T: has_m2 = True; meta["exact_ok"] = m2["exact_ok"]
-        else: print("  ! Kết quả của Thành viên 2 dùng giới hạn thời gian khác, cần chạy lại --member 2.")
-    if not has_m2: meta["exact_ok"] = []
+        if float(m2["time_limit"]) == T and "sat_ok" in m2: has_m2 = True
+        else: print("  ! Kết quả của Thành viên 2 không khớp (khác giới hạn thời gian hoặc bản cũ), cần chạy lại --member 2.")
+    if has_m2:
+        meta.update(exact_ok=m2["exact_ok"], sat_ok=m2["sat_ok"], best_sat=m2["best_sat"], cms=m2.get("cms"), kissat=m2.get("kissat"))
+    else:
+        meta.update(exact_ok=[], sat_ok=[meta["fixed"]], best_sat=meta["fixed"])
     write_members(True, has_m2)
     sets = list(meta["sets"]); fixed = meta["fixed"]; bc = meta["best_cfg"]; bs = meta["best_sat"]
     tdir = os.path.join(REPORT, "tables"); os.makedirs(tdir, exist_ok=True)
@@ -475,7 +493,7 @@ def cmd_report(a=None):
     L += [r"\bottomrule", r"\end{tabular}"]; W("res_solvers.tex", "\n".join(L) + "\n")
 
     ver = solver_versions(meta)
-    W("solvers.tex", solvers_table(ver, meta["sat_ok"], meta["exact_ok"] if has_m2 else None))
+    W("solvers.tex", solvers_table(ver, meta["sat_ok"] if has_m2 else None, meta["exact_ok"] if has_m2 else None, fixed))
     W("bench.tex", bench_table(sets))
 
     # ---- Bang C: SAT tot nhat so voi ILP, CP
@@ -546,13 +564,14 @@ def cmd_report(a=None):
     amos = sorted(DIRECT_CFG, key=lambda c: (-tot(f"sat:{fixed}:{c}")["opt"], tot(f"sat:{fixed}:{c}")["par2"]))
     cfg_txt = (f"Với {SAT_LABEL[fixed]}, cấu hình tốt nhất là \\texttt{{{cb}}}: chứng nhận tối ưu {tb['opt']}/{tb['total']} đề, tổng PAR-2 trên các bộ là {vn(tb['par2'])} giây. "
                f"Cấu hình kém nhất là \\texttt{{{cw}}} ({tw['opt']}/{tw['total']} đề, tổng PAR-2 {vn(tw['par2'])} giây). "
-               f"So với \\texttt{{full}} ({tot(f'sat:{fixed}:full')['opt']}/{tot(f'sat:{fixed}:full')['total']} đề): " + "; ".join(diff("full", c) for c in ("no-sym", "pair", "non-inc")) + ". "
+               f"So với \\texttt{{full}} ({tot(f'sat:{fixed}:full')['opt']}/{tot(f'sat:{fixed}:full')['total']} đề): " + "; ".join(diff("full", c) for c in ("compact", "no-sym", "pair", "non-inc")) + ". "
                f"Trong năm cấu hình \\texttt{{direct}}, thứ tự từ tốt đến kém là " + ", ".join(S.AMO_LABEL[c.split('-')[1]] for c in amos) + ".")
     rank = sorted(solvers, key=lambda x: (-tot(f"sat:{x}:{bc}")["opt"], tot(f"sat:{x}:{bc}")["par2"]))
     solver_txt = (f"Với cấu hình \\texttt{{{bc}}}, xếp theo số đề chứng nhận tối ưu rồi đến PAR-2, thứ tự các solver là "
                   + ", ".join(f"{SAT_LABEL[x]} ({tot(f'sat:{x}:{bc}')['opt']}/{tot(f'sat:{x}:{bc}')['total']})" for x in rank) + ".")
     miss = [SAT_LABEL[x] for x in SAT_SOLVERS if x not in meta["sat_ok"]]
     if miss: solver_txt += f" Không chạy được trên máy thử nghiệm: {', '.join(miss)}."
+    if not has_m2: solver_txt = PLACEHOLDER_TEXT["AutoSolvers"]
     def share(m):
         st = [stats(rows, m, s, T) for s in sets]; b_ = sum(x["build"] for x in st if x); s_ = sum(x["solve"] for x in st if x)
         return 100 * b_ / (b_ + s_) if b_ + s_ > 0 else 0
@@ -582,15 +601,28 @@ def cmd_report(a=None):
     else:
         cmp_txt = "Gurobi, CPLEX và CP-SAT không chạy được trên máy thử nghiệm, nên chưa có số liệu so sánh."; sent = ""
     n_all = sum(meta["sets"].values())
-    abs_txt = (f"Trên {n_all} đề với giới hạn {vn(T, 0)} giây, cấu hình tốt nhất là \\texttt{{{bc}}} và {SAT_LABEL[bs]} là SAT solver tốt nhất, "
-               f"chứng nhận tối ưu {bt['opt']}/{bt['total']} đề." + sent)
+    if has_m2:
+        abs_txt = (f"Trên {n_all} đề với giới hạn {vn(T, 0)} giây, cấu hình tốt nhất là \\texttt{{{bc}}} và {SAT_LABEL[bs]} là SAT solver tốt nhất, "
+                   f"chứng nhận tối ưu {bt['opt']}/{bt['total']} đề." + sent)
+    else:
+        abs_txt = (f"Trên {n_all} đề với giới hạn {vn(T, 0)} giây, với {SAT_LABEL[fixed]} cấu hình tốt nhất là \\texttt{{{bc}}}, "
+                   f"chứng nhận tối ưu {bt['opt']}/{bt['total']} đề. " + PLACEHOLDER_TEXT["AutoSolvers"])
+    rep = "Mỗi đề chạy một lần với mỗi cấu hình" + (f", chạy song song {meta['jobs']} tiến trình" if meta["jobs"] > 1 else "") + "."
+    if has_m2:
+        mi2 = m2.get("machine") or {}
+        same = all(mi2.get(k) == mi.get(k) for k in ("cpu", "cores", "ram", "os"))
+        rep += (" Thí nghiệm A chạy trên máy của Thành viên 1, thí nghiệm B và C trên máy của Thành viên 2"
+                + (" (cùng cấu hình máy)." if same else
+                   f" (CPU {tex_escape(mi2.get('cpu', '?'))}, {mi2.get('cores', '?')} luồng, RAM {tex_escape(mi2.get('ram', '?'))}); "
+                   "vì hai máy khác nhau, thời gian của solver cố định trong Bảng~\\ref{tab:res-solvers} (lấy từ thí nghiệm A) không so sánh trực tiếp được với các solver còn lại."))
     scope = "trên các bộ " + ", ".join(sets)
     def M(name, val): return f"\\renewcommand{{\\{name}}}{{{val}}}\n"
     txt = ("% TU DONG SINH boi run_experiments.py -- hay doc lai va sua cho tu nhien.\n"
            + M("MachineCPU", tex_escape(mi["cpu"])) + M("MachineCores", mi["cores"]) + M("MachineRAM", tex_escape(mi["ram"]))
            + M("MachineOS", tex_escape(mi["os"])) + M("PythonVersion", mi["python"]) + M("TimeLimit", vn(T, 0))
-           + M("RepeatText", "Mỗi đề chạy một lần với mỗi cấu hình" + (f", chạy song song {meta['jobs']} tiến trình" if meta["jobs"] > 1 else "") + ".")
-           + M("FixedSolver", SAT_LABEL[fixed]) + M("BestConfig", r"\texttt{" + bc + "}") + M("BestSolver", SAT_LABEL[bs]) + M("DataScope", scope)
+           + M("RepeatText", rep)
+           + M("FixedSolver", SAT_LABEL[fixed]) + M("BestConfig", r"\texttt{" + bc + "}")
+           + M("BestSolver", SAT_LABEL[bs] if has_m2 else PLACEHOLDER_TEXT["BestSolver"]) + M("DataScope", scope)
            + M("AutoAbstract", abs_txt) + M("AutoCfg", cfg_txt) + M("AutoSolvers", solver_txt) + M("AutoScale", scale_txt)
            + M("AutoCompare", cmp_txt) + M("AutoConclusion", abs_txt))
     open(os.path.join(REPORT, "results", "auto_text.tex"), "w", encoding="utf-8").write(txt)
@@ -692,8 +724,8 @@ def main():
     a = ap.parse_args()
     if a.cmd == "worker": return worker(a)
     if a.cmd == "check":
-        print("Thành viên 1, SAT solver (OK = chạy được):"); available_sat({"cms": a.cms, "kissat": a.kissat})
-        print("Thành viên 2, ILP và CP:"); available_exact({}); return
+        print("SAT solver, Thành viên 1 (thí nghiệm A) và Thành viên 2 (thí nghiệm B) (OK = chạy được):"); available_sat({"cms": a.cms, "kissat": a.kissat})
+        print("ILP và CP, Thành viên 2 (thí nghiệm C):"); available_exact({}); return
     if a.cmd == "run": return cmd_run(a)
     if a.cmd == "report": return cmd_report(a)
     if a.cmd == "reset": return cmd_reset(a)
