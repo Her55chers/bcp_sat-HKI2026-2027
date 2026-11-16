@@ -1,18 +1,18 @@
-% CHO TRONG -- se bi ghi de khi chay run_experiments.py run
-\renewcommand{\MachineCPU}{\TODO{CPU}}
-\renewcommand{\MachineCores}{\TODO{số luồng}}
-\renewcommand{\MachineRAM}{\TODO{RAM}}
-\renewcommand{\MachineOS}{\TODO{hệ điều hành}}
-\renewcommand{\PythonVersion}{\TODO{phiên bản}}
-\renewcommand{\TimeLimit}{\TODO{giới hạn}}
-\renewcommand{\RepeatText}{\TODO{Ghi số lần chạy lặp.}}
-\renewcommand{\FixedSolver}{\TODO{solver cố định}}
-\renewcommand{\BestConfig}{\TODO{cấu hình tốt nhất}}
+% TU DONG SINH boi run_experiments.py -- hay doc lai va sua cho tu nhien.
+\renewcommand{\MachineCPU}{AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD}
+\renewcommand{\MachineCores}{12}
+\renewcommand{\MachineRAM}{32 GB}
+\renewcommand{\MachineOS}{Windows 11}
+\renewcommand{\PythonVersion}{3.12.10}
+\renewcommand{\TimeLimit}{60}
+\renewcommand{\RepeatText}{Mỗi đề chạy một lần với mỗi cấu hình, chạy song song 12 tiến trình.}
+\renewcommand{\FixedSolver}{CaDiCaL}
+\renewcommand{\BestConfig}{\texttt{compact}}
 \renewcommand{\BestSolver}{\TODO{solver tốt nhất}}
-\renewcommand{\DataScope}{trên \TODO{các bộ đã chạy}}
-\renewcommand{\AutoAbstract}{\TODO{Viết 1--2 câu về kết quả thực nghiệm chính.}}
-\renewcommand{\AutoCfg}{\TODO{Nhận xét: cấu hình nào chứng nhận được nhiều đề nhất; ảnh hưởng của phá đối xứng, mã hóa khoảng và giải tăng dần; thứ tự các AMO.}}
+\renewcommand{\DataScope}{trên các bộ GEOM-S, GEOM-M, GEOM-L}
+\renewcommand{\AutoAbstract}{Trên 33 đề với giới hạn 60 giây, với CaDiCaL cấu hình tốt nhất là \texttt{compact}, chứng nhận tối ưu 26/33 đề. \TODO{Nhận xét thứ hạng các SAT solver.}}
+\renewcommand{\AutoCfg}{Với CaDiCaL, cấu hình tốt nhất là \texttt{compact}: chứng nhận tối ưu 26/33 đề, tổng PAR-2 trên các bộ là 95,68 giây. Cấu hình kém nhất là \texttt{direct-pairwise} (18/33 đề, tổng PAR-2 179,89 giây). So với \texttt{full} (26/33 đề): \texttt{compact} đạt 26/33 đề, tổng PAR-2 95,68 giây; \texttt{no-sym} đạt 26/33 đề, tổng PAR-2 96,96 giây; \texttt{pair} đạt 26/33 đề, tổng PAR-2 99,47 giây; \texttt{non-inc} đạt 26/33 đề, tổng PAR-2 99,01 giây. Trong năm cấu hình \texttt{direct}, thứ tự từ tốt đến kém là Commander, Binary, Sequential, Product, Pairwise.}
 \renewcommand{\AutoSolvers}{\TODO{Nhận xét thứ hạng các SAT solver.}}
-\renewcommand{\AutoScale}{\TODO{Ghi kết quả trên bộ lớn nhất; tỉ lệ thời gian sinh công thức; các lần chạy lỗi; đối chiếu với giá trị tham khảo.}}
+\renewcommand{\AutoScale}{Trên bộ lớn nhất (GEOM-L), SAT (CaDiCaL, compact) chứng nhận tối ưu 3/9 đề trong giới hạn 60 giây. Thời gian sinh công thức chiếm 37\% tổng thời gian của các đề đã chứng nhận. Cả 224 giá trị được chứng nhận tối ưu trong bài đều trùng với giá trị tham khảo của~\citet{nguyen2026bcp}. }
 \renewcommand{\AutoCompare}{\TODO{Nhận xét SAT so với Gurobi, CPLEX MIP, CPLEX CP và CP-SAT.}}
-\renewcommand{\AutoConclusion}{\TODO{Tóm tắt kết quả thực nghiệm.}}
+\renewcommand{\AutoConclusion}{Trên 33 đề với giới hạn 60 giây, với CaDiCaL cấu hình tốt nhất là \texttt{compact}, chứng nhận tối ưu 26/33 đề. \TODO{Nhận xét thứ hạng các SAT solver.}}
