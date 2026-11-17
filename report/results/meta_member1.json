@@ -7,9 +7,11 @@
   "GEOM-L": 9,
   "MS-CAP": 20
  },
- "fixed": "cadical195",
- "best_cfg": "pair",
+ "fixed": "kissat",
+ "best_cfg": "no-sym",
  "jobs": 12,
+ "cms": null,
+ "kissat": "/home/herrschers/kissat/build/kissat",
  "machine": {
   "cpu": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
   "cores": 16,
