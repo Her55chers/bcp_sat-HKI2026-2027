@@ -80,7 +80,7 @@ Kissat không có gói Python; chương trình gọi file chạy `kissat` và tr
   ```
   File chạy nằm ở `kissat/build/kissat`.
 - **macOS**: có thể cài qua Homebrew (`brew install kissat`) hoặc build như trên.
-- **Windows**: Kissat không hỗ trợ Windows trực tiếp. Hoặc chạy toàn bộ dự án trong WSL (Ubuntu) rồi build như Linux, hoặc bỏ qua Kissat (báo cáo sẽ ghi "không chạy").
+- **Windows**: Kissat không hỗ trợ Windows trực tiếp, nhưng có thể build trong WSL (Ubuntu) như Linux rồi vẫn chạy Python trên Windows. Truyền cho `--kissat` **đường dẫn Linux** (bắt đầu bằng `/`), ví dụ `--kissat /home/<tên>/kissat/build/kissat`; chương trình sẽ tự gọi qua `wsl`, đổi đường dẫn file CNF sang `/mnt/c/...` và dùng `timeout` bên Linux để dừng Kissat khi hết giờ. Nếu không có WSL thì bỏ qua Kissat (báo cáo sẽ ghi "không chạy").
 
 ### CryptoMiniSat
 `pycryptosat` đã có trong `requirements.txt`. Nếu không cài được, có thể dùng file chạy `cryptominisat5` và truyền đường dẫn bằng `--cms ĐƯỜNG_DẪN`.
@@ -176,6 +176,7 @@ Bạn chỉ sửa các file trong `report/parts/member2/`. Mục "So sánh các 
 |---|---|
 | `Chưa có kết quả của Thành viên 1 (report/results/meta_member1.json)` | Chưa `git pull`, hoặc Thành viên 1 chưa push. |
 | `Máy này không chạy được CaDiCaL (solver cố định của Thành viên 1)` | Cài `python-sat`: `pip install python-sat`. |
+| `Máy này không chạy được Kissat (solver cố định của Thành viên 1)` | Thành viên 1 chọn Kissat (`--sat-solver kissat`). Cài Kissat rồi truyền `--kissat ĐƯỜNG_DẪN`. |
 | `Không có solver ILP hay CP nào chạy được` | Cài `ortools`: `pip install ortools`. |
 | `Kết quả của Thành viên 2 không khớp ...` khi sinh báo cáo | Thành viên 1 đã chạy lại với giới hạn thời gian khác: chạy lại `run --member 2`. |
 | Cột `msg` báo lỗi kích thước mô hình (Gurobi/CPLEX) | Bản không có giấy phép bị giới hạn kích thước; xin giấy phép học thuật, hoặc chấp nhận "lỗi" trên đề lớn và nêu trong mục Hạn chế. |

@@ -89,6 +89,21 @@ class CMSBackend(S.Backend):
         ok, sol = self.s.solve()
         return [i for i, v in enumerate(sol) if v is True] if ok else None
 
+def is_wsl_exe(exe):
+    """Tren Windows, duong dan Linux (bat dau bang '/') nghia la file chay nam trong WSL."""
+    return os.name == "nt" and bool(exe) and exe.startswith("/")
+
+def to_wsl_path(p):
+    p = os.path.abspath(p); drive, rest = os.path.splitdrive(p)
+    return f"/mnt/{drive[0].lower()}{rest.replace(chr(92), '/')}"
+
+def ext_cmd(exe, args, timeout=None):
+    """Lenh goi solver ngoai; voi file chay trong WSL thi goi qua wsl.exe va dung `timeout`
+    ben Linux de chac chan tien trinh bi diet khi het gio."""
+    if not is_wsl_exe(exe): return [exe] + args
+    pre = ["timeout", "-s", "KILL", f"{max(timeout, 0.1):.1f}"] if timeout else []
+    return ["wsl", "-e"] + pre + [exe] + args
+
 class ExternalBackend(S.Backend):
     """Ghi DIMACS roi goi solver ngoai; exit 10 = SAT, 20 = UNSAT.
     Moi nguong la mot lan chay moi, nen khong giu menh de hoc duoc."""
@@ -102,10 +117,13 @@ class ExternalBackend(S.Backend):
             left = self.deadline - time.perf_counter()
             if left <= 0: raise TimeUp()
             try:
-                p = subprocess.run([self.exe] + self.extra + [path], capture_output=True, text=True, timeout=left)
+                arg = to_wsl_path(path) if is_wsl_exe(self.exe) else path
+                p = subprocess.run(ext_cmd(self.exe, self.extra + [arg], left), capture_output=True, text=True, timeout=left + 5)
             except subprocess.TimeoutExpired:
                 raise TimeUp()
             if p.returncode == 20: return None
+            if p.returncode != 10 and time.perf_counter() >= self.deadline:
+                raise TimeUp()  # bi `timeout` ben WSL diet
             if p.returncode != 10:
                 raise RuntimeError(f"{os.path.basename(self.exe)} exit {p.returncode}: {(p.stderr or p.stdout)[-200:]}")
             return [int(t) for line in p.stdout.splitlines() if line.startswith("v ")
@@ -303,15 +321,18 @@ def run_member1(a):
     print("2) Kiểm tra SAT solver ...")
     sat_ok = available_sat(paths)
     if not sat_ok: sys.exit("Không có SAT solver nào chạy được. Hãy cài python-sat.")
+    if a.sat_solver and a.sat_solver not in sat_ok:
+        sys.exit(f"--sat-solver {a.sat_solver}: {SAT_LABEL[a.sat_solver]} không chạy được trên máy này"
+                 + (" (thêm --kissat ĐƯỜNG_DẪN)." if a.sat_solver == "kissat" else "."))
     done = {(r["instance"], r["method"], r["time_limit"]) for r in load_runs()}
-    fixed = sat_ok[0]
+    fixed = a.sat_solver or sat_ok[0]
     print(f"3) Thí nghiệm A: {len(CFGS)} cấu hình mã hóa với {SAT_LABEL[fixed]}")
     run_batch([(s, i, f"sat:{fixed}:{c}") for s in sets for c in CFGS for i in sets[s]], T, a.jobs, paths, done, 1)
     rows = load_runs()
     best_cfg = max(CFGS, key=lambda c: key_total(rows, f"sat:{fixed}:{c}", list(sets), T))
     print(f"   -> cấu hình tốt nhất: {best_cfg}")
     meta = dict(profile=a.profile, time_limit=T, sets={k: len(v) for k, v in sets.items()}, fixed=fixed, best_cfg=best_cfg,
-                jobs=a.jobs, machine=machine_info())
+                jobs=a.jobs, cms=a.cms, kissat=a.kissat, machine=machine_info())
     os.makedirs(os.path.dirname(META[1]), exist_ok=True)
     json.dump(meta, open(META[1], "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     print("4) Tạo bảng, hình và đoạn văn cho báo cáo ...")
@@ -326,11 +347,18 @@ def run_member2(a):
         sys.exit("Chưa có kết quả của Thành viên 1 (report/results/meta_member1.json). Thành viên 2 cần file này để dùng đúng bộ đề và giới hạn thời gian.")
     m1 = json.load(open(META[1], encoding="utf-8")); T = float(m1["time_limit"])
     all_sets = instance_sets(); sets = {s: all_sets[s] for s in m1["sets"]}
-    fixed, best_cfg = m1["fixed"], m1["best_cfg"]; paths = {"cms": a.cms, "kissat": a.kissat}
+    fixed, best_cfg = m1["fixed"], m1["best_cfg"]
+    # Khong truyen --kissat/--cms thi dung lai duong dan Thanh vien 1 da dung (neu co)
+    a.cms, a.kissat = a.cms or m1.get("cms"), a.kissat or m1.get("kissat")
+    paths = {"cms": a.cms, "kissat": a.kissat}
+    if a.sat_solver and a.sat_solver != fixed:
+        print(f"  ! Bỏ qua --sat-solver: Thành viên 2 dùng solver cố định của Thành viên 1 ({SAT_LABEL[fixed]}).")
     print(f"1) Dùng cấu hình của Thành viên 1: các bộ {list(sets)}, giới hạn {T:g} giây, cấu hình tốt nhất {best_cfg}")
     print("2) Kiểm tra SAT solver, ILP và CP ...")
     sat_ok = available_sat(paths)
-    if fixed not in sat_ok: sys.exit(f"Máy này không chạy được {SAT_LABEL[fixed]} (solver cố định của Thành viên 1). Hãy cài python-sat.")
+    if fixed not in sat_ok:
+        how = {"kissat": "Thêm --kissat ĐƯỜNG_DẪN.", "cms": "Cài pycryptosat hoặc thêm --cms ĐƯỜNG_DẪN."}.get(fixed, "Hãy cài python-sat.")
+        sys.exit(f"Máy này không chạy được {SAT_LABEL[fixed]} (solver cố định của Thành viên 1). {how}")
     exact_ok = available_exact({})
     if not exact_ok: sys.exit("Không có solver ILP hay CP nào chạy được, chưa thể hoàn thành phần Thành viên 2. Hãy cài ortools, gurobipy hoặc docplex.")
     done = {(r["instance"], r["method"], r["time_limit"]) for r in load_runs()}
@@ -402,7 +430,7 @@ def solver_versions(meta):
     else:
         tryv("cms", lambda: "pycryptosat " + __import__("pycryptosat").__version__)
     exe = meta.get("kissat") or shutil.which("kissat")
-    tryv("kissat", lambda: subprocess.run([exe, "--version"], capture_output=True, text=True).stdout)
+    tryv("kissat", lambda: subprocess.run(ext_cmd(exe, ["--version"]), capture_output=True, text=True).stdout)
     tryv("cpsat", lambda: "OR-Tools " + __import__("ortools").__version__)
     tryv("gurobi", lambda: ".".join(map(str, __import__("gurobipy").gurobi.version())))
     tryv("cplex-mip", lambda: "docplex " + __import__("docplex").__version__)
@@ -453,7 +481,8 @@ def cmd_report(a=None):
         if float(m2["time_limit"]) == T and "sat_ok" in m2: has_m2 = True
         else: print("  ! Kết quả của Thành viên 2 không khớp (khác giới hạn thời gian hoặc bản cũ), cần chạy lại --member 2.")
     if has_m2:
-        meta.update(exact_ok=m2["exact_ok"], sat_ok=m2["sat_ok"], best_sat=m2["best_sat"], cms=m2.get("cms"), kissat=m2.get("kissat"))
+        meta.update(exact_ok=m2["exact_ok"], sat_ok=m2["sat_ok"], best_sat=m2["best_sat"],
+                    cms=m2.get("cms") or meta.get("cms"), kissat=m2.get("kissat") or meta.get("kissat"))
     else:
         meta.update(exact_ok=[], sat_ok=[meta["fixed"]], best_sat=meta["fixed"])
     write_members(True, has_m2)
@@ -717,6 +746,8 @@ def main():
     p = sp.add_parser("run"); p.add_argument("--member", type=int, required=True, choices=[1, 2]); p.add_argument("--profile", default="quick", choices=list(PROFILES))
     p.add_argument("--time-limit", type=float); p.add_argument("--jobs", type=int, default=1); paths(p)
     p.add_argument("--sets", nargs="+", help="chỉ chạy các bộ này, vd --sets GEOM-S GEOM-L")
+    p.add_argument("--sat-solver", choices=SAT_SOLVERS,
+                   help="Thành viên 1: SAT solver cố định cho thí nghiệm A (mặc định: solver đầu tiên chạy được, thường là CaDiCaL)")
     sp.add_parser("report"); sp.add_parser("reset")
     p = sp.add_parser("info"); p.add_argument("--member", type=int, required=True, choices=[1, 2]); p.add_argument("--name"); p.add_argument("--student-id"); p.add_argument("--email"); p.add_argument("--github")
     p = sp.add_parser("worker"); p.add_argument("--method"); p.add_argument("--instance")

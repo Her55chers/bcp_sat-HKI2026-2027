@@ -11,10 +11,10 @@
  "best_cfg": "pair",
  "jobs": 12,
  "machine": {
-  "cpu": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD",
-  "cores": 12,
-  "ram": "32 GB",
+  "cpu": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+  "cores": 16,
+  "ram": "30 GB",
   "os": "Windows 11",
-  "python": "3.12.10"
+  "python": "3.14.7"
  }
 }
