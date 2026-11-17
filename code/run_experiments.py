@@ -595,7 +595,12 @@ def cmd_report(a=None):
                f"Cấu hình kém nhất là \\texttt{{{cw}}} ({tw['opt']}/{tw['total']} đề, tổng PAR-2 {vn(tw['par2'])} giây). "
                f"So với \\texttt{{full}} ({tot(f'sat:{fixed}:full')['opt']}/{tot(f'sat:{fixed}:full')['total']} đề): " + "; ".join(diff("full", c) for c in ("compact", "no-sym", "pair", "non-inc")) + ". "
                f"Trong năm cấu hình \\texttt{{direct}}, thứ tự từ tốt đến kém là " + ", ".join(S.AMO_LABEL[c.split('-')[1]] for c in amos) + ".")
-    rank = sorted(solvers, key=lambda x: (-tot(f"sat:{x}:{bc}")["opt"], tot(f"sat:{x}:{bc}")["par2"]))
+    if fixed == "kissat" or (fixed == "cms" and meta.get("cms")):
+        # solver goi qua file chay: moi nguong la mot lan chay moi, nen full va non-inc nhu nhau
+        cfg_txt += (f" Lưu ý: {SAT_LABEL[fixed]} được gọi như một chương trình ngoài và giải lại từ đầu ở mỗi ngưỡng $K$, "
+                    f"nên với solver này \\texttt{{full}} và \\texttt{{non-inc}} thực chất chạy giống nhau, và phép so sánh "
+                    f"giải tăng dần chỉ có ý nghĩa với các solver gọi qua PySAT (Bảng~\\ref{{tab:res-solvers}}).")
+    rank =sorted(solvers, key=lambda x: (-tot(f"sat:{x}:{bc}")["opt"], tot(f"sat:{x}:{bc}")["par2"]))
     solver_txt = (f"Với cấu hình \\texttt{{{bc}}}, xếp theo số đề chứng nhận tối ưu rồi đến PAR-2, thứ tự các solver là "
                   + ", ".join(f"{SAT_LABEL[x]} ({tot(f'sat:{x}:{bc}')['opt']}/{tot(f'sat:{x}:{bc}')['total']})" for x in rank) + ".")
     miss = [SAT_LABEL[x] for x in SAT_SOLVERS if x not in meta["sat_ok"]]
@@ -609,7 +614,13 @@ def cmd_report(a=None):
     scale_txt = (f"Trên bộ lớn nhất ({largest}), {sat_lab} chứng nhận tối ưu {sc['opt']}/{sc['total']} đề trong giới hạn {vn(T, 0)} giây. "
                  f"Thời gian sinh công thức chiếm {vn(share(sat_m), 0)}\\% tổng thời gian của các đề đã chứng nhận. ")
     bad = [r for r in rows if r["status"] in ("MO", "ERR", "WRONG") and r["time_limit"] == T]
-    if bad: scale_txt += f"Có {len(bad)} lần chạy lỗi hoặc hết bộ nhớ (xem cột msg trong \\texttt{{results/runs.csv}}). "
+    if bad:
+        def who(m):
+            return SAT_LABEL.get(m.split(":")[1], m) if m.startswith("sat:") else EXACT_LABEL.get(m, m)
+        cnt = {}
+        for r in bad: cnt[who(r["method"])] = cnt.get(who(r["method"]), 0) + 1
+        scale_txt += (f"Có {len(bad)} lần chạy lỗi hoặc hết bộ nhớ (" + ", ".join(f"{k}: {v}" for k, v in sorted(cnt.items()))
+                      + r"; xem cột \texttt{msg} trong \texttt{results/runs\_member1.csv} và \texttt{results/runs\_member2.csv}). ")
     if any(r["status"] == "WRONG" for r in bad): scale_txt += r"\textcolor{red}{Có lời giải sai (đánh dấu $^{!}$ trong bảng), cần kiểm tra lại code.} "
     if mismatch:
         scale_txt += r"\textcolor{red}{" + f"Có {len(mismatch)} giá trị tối ưu khác giá trị tham khảo: {tex_escape(str(mismatch[:3]))}; cần kiểm tra lại." + "} "
