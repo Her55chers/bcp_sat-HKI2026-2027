@@ -12,7 +12,7 @@ Khối lượng: B = 4 solver × 2 cấu hình × N đề, trừ 2N lần đã c
 | Profile (do Thành viên 1 chọn) | Số lần chạy | Thời gian tối đa (mọi lần đều hết giờ) |
 |---|---|---|
 | `quick` (60 giây/lần, 33 đề GEOM) | 330 | 5,5 giờ; khoảng 1,4 giờ với `--jobs 4` |
-| `full` (900 giây/lần, 53 đề GEOM + MS-CAP) | 530 | khoảng 5,5 ngày; khoảng 1,4 ngày với `--jobs 4` |
+| `full` (1500 giây/lần, 53 đề GEOM + MS-CAP) | 530 | khoảng 9,2 ngày; khoảng 2,3 ngày với `--jobs 4` |
 
 Solver nào không cài được sẽ được bỏ qua và ghi "không chạy" trong báo cáo, nên số lần chạy thực tế có thể ít hơn.
 
@@ -80,7 +80,7 @@ Kissat không có gói Python; chương trình gọi file chạy `kissat` và tr
   ```
   File chạy nằm ở `kissat/build/kissat`.
 - **macOS**: có thể cài qua Homebrew (`brew install kissat`) hoặc build như trên.
-- **Windows**: Kissat không hỗ trợ Windows trực tiếp. Hoặc chạy toàn bộ dự án trong WSL (Ubuntu) rồi build như Linux, hoặc bỏ qua Kissat (báo cáo sẽ ghi "không chạy").
+- **Windows**: Kissat không hỗ trợ Windows trực tiếp, nhưng có thể build trong WSL (Ubuntu) như Linux rồi vẫn chạy Python trên Windows. Truyền cho `--kissat` **đường dẫn Linux** (bắt đầu bằng `/`), ví dụ `--kissat /home/<tên>/kissat/build/kissat`; chương trình sẽ tự gọi qua `wsl`, đổi đường dẫn file CNF sang `/mnt/c/...` và dùng `timeout` bên Linux để dừng Kissat khi hết giờ. Nếu không có WSL thì bỏ qua Kissat (báo cáo sẽ ghi "không chạy").
 
 ### CryptoMiniSat
 `pycryptosat` đã có trong `requirements.txt`. Nếu không cài được, có thể dùng file chạy `cryptominisat5` và truyền đường dẫn bằng `--cms ĐƯỜNG_DẪN`.
@@ -95,7 +95,7 @@ Không có giấy phép thì `gurobipy` chạy ở chế độ giới hạn kíc
 ```bash
 pip install docplex cplex
 ```
-Gói `cplex` trên pip là bản Community Edition, giới hạn khoảng 1000 biến và 1000 ràng buộc. Muốn chạy đề lớn, hoặc nếu `check` báo CPLEX CP không chạy, hãy cài **IBM ILOG CPLEX Optimization Studio** bản đầy đủ (miễn phí cho sinh viên qua IBM Academic Initiative).
+Gói `cplex` trên pip là bản Community Edition, giới hạn khoảng 1000 biến và 1000 ràng buộc. Gói này có kèm file chạy CP Optimizer (`cpoptimizer`), đặt cạnh `python` trong môi trường ảo (`Scripts/` trên Windows, `bin/` trên Linux/macOS); chương trình tự tìm nó ở đó, nên CPLEX CP chạy được mà không cần cài thêm. Với bản community, trên 33 đề GEOM, mô hình MIP vượt giới hạn ở 14 đề và mô hình CP vượt ở 6 đề (đều thuộc GEOM-M và GEOM-L). Muốn chạy các đề này, hãy cài **IBM ILOG CPLEX Optimization Studio** bản đầy đủ (miễn phí cho sinh viên qua IBM Academic Initiative).
 
 ## 4. Kiểm tra cài đặt
 
@@ -176,6 +176,7 @@ Bạn chỉ sửa các file trong `report/parts/member2/`. Mục "So sánh các 
 |---|---|
 | `Chưa có kết quả của Thành viên 1 (report/results/meta_member1.json)` | Chưa `git pull`, hoặc Thành viên 1 chưa push. |
 | `Máy này không chạy được CaDiCaL (solver cố định của Thành viên 1)` | Cài `python-sat`: `pip install python-sat`. |
+| `Máy này không chạy được Kissat (solver cố định của Thành viên 1)` | Thành viên 1 chọn Kissat (`--sat-solver kissat`). Cài Kissat rồi truyền `--kissat ĐƯỜNG_DẪN`. |
 | `Không có solver ILP hay CP nào chạy được` | Cài `ortools`: `pip install ortools`. |
 | `Kết quả của Thành viên 2 không khớp ...` khi sinh báo cáo | Thành viên 1 đã chạy lại với giới hạn thời gian khác: chạy lại `run --member 2`. |
 | Cột `msg` báo lỗi kích thước mô hình (Gurobi/CPLEX) | Bản không có giấy phép bị giới hạn kích thước; xin giấy phép học thuật, hoặc chấp nhận "lỗi" trên đề lớn và nêu trong mục Hạn chế. |

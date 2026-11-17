@@ -41,7 +41,7 @@ python run_experiments.py run --member 2 --jobs 4
 ```
 - Thông số máy trong báo cáo lấy từ máy của Thành viên 1. So sánh thời gian chỉ công bằng khi hai người dùng cùng một máy; nếu khác máy, hãy nêu rõ trong mục Hạn chế.
 - `check` cho biết solver nào dùng được. Solver thiếu sẽ được bỏ qua và ghi "không chạy" trong báo cáo. Thành viên 2 cần ít nhất một solver ILP hoặc CP.
-- `quick`: 60 giây mỗi lần, toàn bộ GEOM. `full`: 3600 giây mỗi lần, GEOM và MS-CAP, rất lâu. `smoke`: chạy thử. Có thể chọn bộ bằng `--sets GEOM-L`, đổi giới hạn bằng `--time-limit`.
+- `quick`: 60 giây mỗi lần, toàn bộ GEOM. `full`: 1500 giây mỗi lần, GEOM và MS-CAP, rất lâu. `smoke`: chạy thử. Có thể chọn bộ bằng `--sets GEOM-L`, đổi giới hạn bằng `--time-limit` (tối đa 1500 giây).
 - Chạy thử xong, hãy xóa các file `report/results/runs_member*.csv` và `meta_member*.json` trước khi chạy thật, rồi chạy `python run_experiments.py reset`.
 - Dừng giữa chừng rồi chạy lại lệnh cũ, các lần đã xong sẽ được bỏ qua.
 - Kissat cần file chạy riêng: thêm `--kissat ĐƯỜNG_DẪN`. Gurobi và CPLEX cần giấy phép: bản miễn phí giới hạn kích thước mô hình, nên đề lớn sẽ báo lỗi trong cột `msg`.

@@ -1,0 +1,20 @@
+{
+ "profile": "full",
+ "time_limit": 1500.0,
+ "sets": {
+  "GEOM-S": 12,
+  "GEOM-M": 12,
+  "GEOM-L": 9,
+  "MS-CAP": 20
+ },
+ "fixed": "cadical195",
+ "best_cfg": "pair",
+ "jobs": 12,
+ "machine": {
+  "cpu": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+  "cores": 16,
+  "ram": "30 GB",
+  "os": "Windows 11",
+  "python": "3.14.7"
+ }
+}
