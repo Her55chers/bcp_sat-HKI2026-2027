@@ -1,0 +1,26 @@
+{
+ "time_limit": 1500.0,
+ "best_sat": "cadical195",
+ "sat_ok": [
+  "cadical195",
+  "glucose4",
+  "cms",
+  "kissat"
+ ],
+ "exact_ok": [
+  "gurobi",
+  "cplex-mip",
+  "cplex-cp",
+  "cpsat"
+ ],
+ "jobs": 4,
+ "cms": null,
+ "kissat": "/home/adminwsl/kissat/build/kissat",
+ "machine": {
+  "cpu": "Intel64 Family 6 Model 142 Stepping 12, GenuineIntel",
+  "cores": 8,
+  "ram": "16 GB",
+  "os": "Windows 11",
+  "python": "3.13.14"
+ }
+}
