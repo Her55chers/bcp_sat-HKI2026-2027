@@ -1,7 +1,9 @@
 %% Phan cua Thanh vien 2
 \subsection{So sánh các SAT solver}\label{sec:exp-solvers}
 
-Thí nghiệm này (thí nghiệm B) dùng cấu hình tốt nhất tìm được ở Bảng~\ref{tab:res-cfg}. Bảng~\ref{tab:res-solvers} so sánh các SAT solver với hai cấu hình: cấu hình tốt nhất đó và \texttt{direct-pairwise}, để xem cấu hình tốt cho \FixedSolver{} có tốt cho các solver khác hay không. Các lần chạy của \FixedSolver{} lấy lại từ thí nghiệm A. Hình~\ref{fig:cactus} vẽ phân bố thời gian với cấu hình tốt nhất. \AutoSolvers{} Lưu ý rằng Kissat, và CryptoMiniSat nếu gọi bằng file chạy riêng, được chạy lại từ đầu ở mỗi ngưỡng nên không dùng lại được những gì đã học.
+Thí nghiệm này (thí nghiệm B) dùng cấu hình tốt nhất tìm được ở Bảng~\ref{tab:res-cfg} là \BestConfig{}. Bảng~\ref{tab:res-solvers} so sánh bốn SAT solver (CaDiCaL, Glucose, CryptoMiniSat và Kissat) trên hai cấu hình: \BestConfig{} và \texttt{direct-pairwise}, nhằm kiểm tra xem cấu hình tốt cho \FixedSolver{} có tiếp tục hiệu quả trên các solver khác hay không. Các lần chạy của \FixedSolver{} được lấy lại từ thí nghiệm A, còn Hình~\ref{fig:cactus} minh họa phân bố thời gian giải của các solver với cấu hình \BestConfig{}.
+
+Kết quả ở Bảng~\ref{tab:res-solvers} cho thấy ưu thế của \BestConfig{} được giữ vững trên tất cả các solver: mọi solver đều giải được 51--52/53 đề với \BestConfig{}, trong khi giảm mạnh xuống còn 41--44/53 đề khi chuyển sang \texttt{direct-pairwise}. Với cấu hình \BestConfig{}, xét theo số đề chứng nhận tối ưu và tổng PAR-2, thứ tự các solver lần lượt là \BestSolver{} (52/53 đề, tổng PAR-2 702,17 giây), CryptoMiniSat (52/53 đề), Kissat (51/53 đề) và Glucose (51/53 đề). \BestSolver{} dẫn đầu đồng đều trên cả bốn bộ dữ liệu, đặc biệt vượt trội trên \texttt{GEOM-M} (12/12 đề, 11,90 giây) và \texttt{GEOM-L} (8/9 đề, 690,0 giây). Ngược lại, với \texttt{direct-pairwise}, Glucose lại đạt kết quả tốt nhất trên hai bộ lớn (\texttt{GEOM-M}: 9/12 đề; \texttt{GEOM-L}: 3/9 đề), còn trên \texttt{MS-CAP} cả bốn solver đều giải trọn 20/20 đề dưới 1 giây ở cả hai cấu hình. Lưu ý rằng Kissat được gọi như một chương trình ngoài (và ở thí nghiệm A chạy trên máy khác) nên phải khởi tạo và giải lại từ đầu ở mỗi ngưỡng $K$, không tận dụng được mệnh đề đã học giữa các lần gọi như các solver chạy tăng dần qua PySAT.
 
 \begin{table}[width=\linewidth,pos=t]
 \caption{Các SAT solver với cấu hình tốt nhất (\BestConfig) và với \texttt{direct-pairwise}: số đề chứng nhận tối ưu / tổng số đề (PAR-2, giây).}
@@ -21,7 +23,9 @@ Thí nghiệm này (thí nghiệm B) dùng cấu hình tốt nhất tìm đượ
 
 \subsection{So sánh với ILP và CP}\label{sec:exp-compare}
 
-Bảng~\ref{tab:res-base} so sánh SAT với Gurobi, CPLEX MIP, CPLEX CP và OR-Tools CP-SAT trên cùng máy, cùng bộ đề và cùng giới hạn thời gian. \AutoCompare
+Bảng~\ref{tab:res-base} đối chiếu phương pháp SAT (\BestSolver{}, cấu hình \BestConfig{}) với bốn bộ giải ILP và CP gồm Gurobi, CPLEX MIP, CPLEX CP và OR-Tools CP-SAT trên cùng máy của Thành viên 2, cùng bộ 53 đề và cùng giới hạn 1.500 giây.
+
+Trên toàn bộ dữ liệu, hướng tiếp cận SAT đứng đầu khi chứng nhận tối ưu 52/53 đề với tổng PAR-2 chỉ 702,17 giây. Xếp ngay sau là OR-Tools CP-SAT với 48/53 đề (tổng PAR-2 1.904,69 giây), tiếp theo là Gurobi với 45/53 đề (tổng PAR-2 2.826,86 giây), CPLEX CP với 41/53 đề (tổng PAR-2 3.620,29 giây) và cuối cùng là CPLEX MIP với 37/53 đề (tổng PAR-2 4.682,45 giây). Kết quả này cho thấy các mô hình SAT và CP xử lý các ràng buộc khoảng cách màu của bài toán tô màu băng thông hiệu quả hơn đáng kể so với mô hình MIP thuần túy.
 
 \begin{table}[width=\linewidth,pos=t]
 \caption{SAT so với ILP và CP: số đề chứng nhận tối ưu / tổng số đề (PAR-2, giây).}
@@ -32,8 +36,8 @@ Bảng~\ref{tab:res-base} so sánh SAT với Gurobi, CPLEX MIP, CPLEX CP và OR-
 
 \subsection{Khả năng mở rộng}\label{sec:exp-scale}
 
-\AutoScale{} Kết quả từng đề nằm ở Bảng~\ref{tab:detail} (\ref{app:detail}).
+Trên bộ dữ liệu lớn nhất (\texttt{GEOM-L}), SAT (\BestSolver{}, \BestConfig{}) chứng nhận tối ưu 8/9 đề trong giới hạn 1.500 giây. Thời gian sinh công thức bằng Python chỉ chiếm 1\% tổng thời gian chạy của các đề đã chứng nhận tối ưu. Trong toàn bộ quá trình thực nghiệm, có 20 lần chạy gặp lỗi hoặc hết bộ nhớ (CaDiCaL: 14, Gurobi: 6; chi tiết ghi ở cột \texttt{msg} trong \texttt{results/runs\_member1.csv} và \texttt{results/runs\_member2.csv}). Cả 1.285 giá trị tối ưu được chứng nhận trong bài đều trùng khớp với giá trị tham khảo của~\citet{nguyen2026bcp}. Kết quả chi tiết từng đề nằm ở Bảng~\ref{tab:detail} (\ref{app:detail}).
 
 \subsection{Hạn chế}\label{sec:threats}
 
-SAT solver CDCL khá nhạy với thứ tự mệnh đề và biến, mà mỗi đề chỉ chạy một lần, nên kết quả trên từng đề có thể bị nhiễu và các so sánh ở đây là số liệu quan sát, không phải khác biệt có ý nghĩa thống kê. Cận $LB$ (clique) và $H$ (iterated greedy) chỉ thu nhỏ công thức và bớt số lần gọi SAT; chúng không làm nhẹ lần chứng minh UNSAT cuối cùng, nên trên các đề khó thời gian gần như không đổi. Thí nghiệm A và thí nghiệm B, C có thể chạy trên hai máy khác nhau (xem Mục~\ref{sec:setup}). Encoder viết bằng Python nên thời gian sinh công thức đáng kể trên đề lớn. Các solver đều dùng tham số mặc định. Các mô hình ILP và CP ở Mục~\ref{sec:ilp} là mô hình cơ bản, nên kết quả của chúng không đại diện cho mọi mô hình ILP, CP có thể có.
+SAT solver CDCL khá nhạy với thứ tự mệnh đề và biến, mà mỗi đề chỉ chạy một lần, nên kết quả trên từng đề có thể bị nhiễu và các so sánh ở đây phản ánh số liệu quan sát, không phải khác biệt có ý nghĩa thống kê. Cận $LB$ (clique) và $H$ (iterated greedy) chỉ giúp thu nhỏ công thức và giảm số lần gọi SAT, nhưng không làm nhẹ lần chứng minh UNSAT cuối cùng, nên trên các đề khó thời gian gần như không đổi. Về phần cứng, thí nghiệm A (Kissat) chạy trên máy của Thành viên 1 (AMD 16 luồng, RAM 30~GB, 12 tiến trình song song), trong khi thí nghiệm B và C chạy trên máy của Thành viên 2 (Intel 8 luồng, RAM 16~GB), nên thời gian của Kissat trong Bảng~\ref{tab:res-solvers} không so sánh trực tiếp ngang bằng với các solver chạy trên máy Thành viên 2. Ngoài ra, Gurobi được chạy ở chế độ không có giấy phép nên bị giới hạn kích thước mô hình (gây ra 6 lỗi trên các đề lớn), các solver đều dùng tham số mặc định, và các mô hình ILP, CP ở Mục~\ref{sec:ilp} là mô hình cơ bản nên chưa đại diện cho mọi cách mô hình hóa ILP, CP có thể có.
